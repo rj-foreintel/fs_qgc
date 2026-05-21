@@ -8,7 +8,7 @@ The tuning UI also supports manual tuning of all controllers.
 ![Tuning Setup > Autotune](../../../assets/setup/tuning/px4_autotune_hero.png)
 
 :::info
-During [Airframe Setup](../config/airframe.md) you should have selected the frame that most closely matches your vehicle.
+During [Airframe Setup](airframe.md) you should have selected the frame that most closely matches your vehicle.
 This will usually be tuned well enough to fly, and it _may_ also be sufficiently well tuned to run autotuning.
 :::
 
@@ -18,7 +18,7 @@ Auto-tuning automates the process of tuning the PX4 rate and attitude controller
 
 :::info
 This guide shows the default usage of this feature.
-Additional information and configuration can be found in the [PX4 Autotuning Guide](http://docs.px4.io/master/en/config/autotune.html) (PX4 User Guide).
+Additional information and configuration can be found in the [PX4 Autotuning Guide](http://docs.px4.io/main/en/config/autotune.html) (PX4 User Guide).
 :::
 
 ### Pre-Autotuning Test
@@ -36,13 +36,13 @@ To make sure the vehicle is stable enough for auto-tuning:
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
    The vehicle should stabilise itself within 2 oscillations.
 4. Repeat the maneuver, tilting with larger amplitudes at each attempt.
-   If the vehicle can stabilise itself within 2 oscillations at \~20 degrees move to the next step.
+   If the vehicle can stabilise itself within 2 oscillations at ~20 degrees move to the next step.
 5. Repeat the same maneuvers but on the pitch axis.
    As above, start with small angles and confirm that the vehicle can itself within 2 oscillations before increasing the tilt.
 
 If the drone can stabilize itself within 2 oscillations it is ready for the auto-tuning procedure.
 
-If not, see the [PX4 User Guide > Autotuning > Troubleshooting](http://docs.px4.io/master/en/config/autotune.html#troubleshooting).
+If not, see the [PX4 User Guide > Autotuning > Troubleshooting](http://docs.px4.io/main/en/config/autotune.html#troubleshooting).
 
 ### Auto-tuning procedure
 
@@ -83,7 +83,7 @@ The test steps are:
    - **Multicopters:** Manually land and disarm to apply the new tuning parameters.
      Takeoff carefully and manually test that the vehicle is stable.
 
-8. If any strong oscillations occur, land immediately and follow the instructions in [PX4 User Guide > Autotuning > Troubleshooting](http://docs.px4.io/master/en/config/autotune.html#troubleshooting).
+8. If any strong oscillations occur, land immediately and follow the instructions in [PX4 User Guide > Autotuning > Troubleshooting](http://docs.px4.io/main/en/config/autotune.html#troubleshooting).
 
 <br/>
 
@@ -101,7 +101,7 @@ A video of the process is shown below:
 Manual tuning is done in-flight, so your vehicle must already be tuned well enough to fly with (this is normally the case if you have selected an appropriate default airframe).
 
 The instructions below explain how you can use the manual tuning UI.
-It is designed to be read/used in conjustion with the [PX4 Manual PID Tuning Guides](http://docs.px4.io/master/en/config/autotune.html#see-also), which provide more detailed hints on the kinds of step sizes to use when changing PID values.
+It is designed to be read/used in conjustion with the [PX4 Manual PID Tuning Guides](http://docs.px4.io/main/en/config/autotune.html#see-also), which provide more detailed hints on the kinds of step sizes to use when changing PID values.
 
 In overview:
 

@@ -1,67 +1,80 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Multimedia Qml)
+# ============================================================================
+# Settings Module
+# Application, vehicle, and user preference settings management
+# ============================================================================
 
-qt_add_library(Settings STATIC
-    ADSBVehicleManagerSettings.cc
-    ADSBVehicleManagerSettings.h
-    $<$<NOT:$<BOOL:${QGC_DISABLE_APM_MAVLINK}>>:APMMavlinkStreamRateSettings.cc>
-    $<$<NOT:$<BOOL:${QGC_DISABLE_APM_MAVLINK}>>:APMMavlinkStreamRateSettings.h>
-    AppSettings.cc
-    AppSettings.h
-    AutoConnectSettings.cc
-    AutoConnectSettings.h
-    BatteryIndicatorSettings.cc
-    BatteryIndicatorSettings.h
-    BrandImageSettings.cc
-    BrandImageSettings.h
-    CustomMavlinkActionsSettings.cc
-    CustomMavlinkActionsSettings.h
-    FirmwareUpgradeSettings.cc
-    FirmwareUpgradeSettings.h
-    FlightMapSettings.cc
-    FlightMapSettings.h
-    FlightModeSettings.cc
-    FlightModeSettings.h
-    FlyViewSettings.cc
-    FlyViewSettings.h
-    GimbalControllerSettings.cc
-    GimbalControllerSettings.h
-    OfflineMapsSettings.cc
-    OfflineMapsSettings.h
-    PlanViewSettings.cc
-    PlanViewSettings.h
-    RemoteIDSettings.cc
-    RemoteIDSettings.h
-    RTKSettings.cc
-    RTKSettings.h
-    SettingsGroup.cc
-    SettingsGroup.h
-    SettingsManager.cc
-    SettingsManager.h
-    UnitsSettings.cc
-    UnitsSettings.h
-    VideoSettings.cc
-    VideoSettings.h
-    MapsSettings.cc
-    MapsSettings.h
-    Viewer3DSettings.cc
-    Viewer3DSettings.h
-)
-
-target_link_libraries(Settings
+target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
-        Qt6::Multimedia
-        API
-        GStreamerReceiver
-        QmlControls
-        Vehicle
-        VideoManager
-        VideoReceiver
-    PUBLIC
-        Qt6::Core
-        Qt6::Qml
-        Comms
-        FactSystem
-        QGC
+        ADSBVehicleManagerSettings.cc
+        ADSBVehicleManagerSettings.h
+        AppSettings.cc
+        AppSettings.h
+        AutoConnectSettings.cc
+        AutoConnectSettings.h
+        BatteryIndicatorSettings.cc
+        BatteryIndicatorSettings.h
+        MavlinkActionsSettings.cc
+        MavlinkActionsSettings.h
+        FirmwareUpgradeSettings.cc
+        FirmwareUpgradeSettings.h
+        FlightMapSettings.cc
+        FlightMapSettings.h
+        FlightModeSettings.cc
+        FlightModeSettings.h
+        FlyViewSettings.cc
+        FlyViewSettings.h
+        GimbalControllerSettings.cc
+        GimbalControllerSettings.h
+        JoystickManagerSettings.cc
+        JoystickManagerSettings.h
+        JoystickSettings.cc
+        JoystickSettings.h
+        LogManagerSettings.cc
+        LogManagerSettings.h
+        MavlinkSettings.cc
+        MavlinkSettings.h
+        OfflineMapsSettings.cc
+        OfflineMapsSettings.h
+        PlanViewSettings.cc
+        PlanViewSettings.h
+        RemoteIDSettings.cc
+        RemoteIDSettings.h
+        RTKSettings.cc
+        RTKSettings.h
+        NTRIPSettings.cc
+        NTRIPSettings.h
+        SettingsGroup.cc
+        SettingsGroup.h
+        SettingsManager.cc
+        SettingsManager.h
+        UnitsSettings.cc
+        UnitsSettings.h
+        VideoSettings.cc
+        VideoSettings.h
+        MapsSettings.cc
+        MapsSettings.h
+        Viewer3DSettings.cc
+        Viewer3DSettings.h
 )
 
-target_include_directories(Settings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# ----------------------------------------------------------------------------
+# APM-Specific Settings
+# ----------------------------------------------------------------------------
+if(NOT QGC_DISABLE_APM_MAVLINK)
+    target_sources(${CMAKE_PROJECT_NAME}
+        PRIVATE
+            APMMavlinkStreamRateSettings.cc
+            APMMavlinkStreamRateSettings.h
+    )
+endif()
+
+# ----------------------------------------------------------------------------
+# Settings Definition Resources
+# ----------------------------------------------------------------------------
+file(GLOB_RECURSE JSON_SETTINGS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.json)
+qt_add_resources(${CMAKE_PROJECT_NAME} json_app_settings
+    PREFIX "/json"
+    FILES ${JSON_SETTINGS_FILES}
+)
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

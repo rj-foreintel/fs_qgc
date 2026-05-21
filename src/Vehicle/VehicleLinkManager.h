@@ -1,93 +1,94 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
-#include "QGCMAVLink.h"
-#include "LinkInterface.h"
-
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
-#include <QtCore/QElapsedTimer>
-#include <QtCore/QLoggingCategory>
+#include <QtQmlIntegration/QtQmlIntegration>
 
-Q_DECLARE_LOGGING_CATEGORY(VehicleLinkManagerLog)
+#include "LinkInterface.h"
+#include "MAVLinkMessageType.h"
 
 class Vehicle;
-class LinkManager;
 class VehicleLinkManagerTest;
 
 class VehicleLinkManager : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("")
+    Q_MOC_INCLUDE("Vehicle.h")
+    Q_PROPERTY(QString      primaryLinkName             READ primaryLinkName            WRITE setPrimaryLinkByName          NOTIFY primaryLinkChanged)
+    Q_PROPERTY(QStringList  linkNames                   READ linkNames                                                      NOTIFY linkNamesChanged)
+    Q_PROPERTY(QStringList  linkStatuses                READ linkStatuses                                                   NOTIFY linkStatusesChanged)
+    Q_PROPERTY(bool         communicationLost           READ communicationLost                                              NOTIFY communicationLostChanged)
+    Q_PROPERTY(bool         communicationLostEnabled    READ communicationLostEnabled   WRITE setCommunicationLostEnabled   NOTIFY communicationLostEnabledChanged)
+    Q_PROPERTY(bool         autoDisconnect              MEMBER _autoDisconnect                                              NOTIFY autoDisconnectChanged)
 
     friend class Vehicle;
+#ifdef QGC_UNITTEST_BUILD
     friend class VehicleLinkManagerTest;
+#endif
 
 public:
-    VehicleLinkManager(Vehicle* vehicle);
+    VehicleLinkManager(Vehicle *vehicle);
+    ~VehicleLinkManager();
 
-    Q_PROPERTY(QString          primaryLinkName             READ primaryLinkName            WRITE setPrimaryLinkByName          NOTIFY primaryLinkChanged)
-    Q_PROPERTY(QStringList      linkNames                   READ linkNames                                                      NOTIFY linkNamesChanged)
-    Q_PROPERTY(QStringList      linkStatuses                READ linkStatuses                                                   NOTIFY linkStatusesChanged)
-    Q_PROPERTY(bool             communicationLost           READ communicationLost                                              NOTIFY communicationLostChanged)
-    Q_PROPERTY(bool             communicationLostEnabled    READ communicationLostEnabled   WRITE setCommunicationLostEnabled   NOTIFY communicationLostEnabledChanged)
-    Q_PROPERTY(bool             autoDisconnect              MEMBER _autoDisconnect                                              NOTIFY autoDisconnectChanged)
-
-    void                    mavlinkMessageReceived      (LinkInterface* link, mavlink_message_t message);
-    bool                    containsLink                (LinkInterface* link);
-    WeakLinkInterfacePtr    primaryLink                 (void) { return _primaryLink; }
-    QString                 primaryLinkName             (void) const;
-    QStringList             linkNames                   (void) const;
-    QStringList             linkStatuses                (void) const;
-    bool                    communicationLost           (void) const { return _communicationLost; }
-    bool                    communicationLostEnabled    (void) const { return _communicationLostEnabled; }
-    void                    setPrimaryLinkByName        (const QString& name);
-    void                    setCommunicationLostEnabled (bool communicationLostEnabled);
-    void                    closeVehicle                (void);
+    void mavlinkMessageReceived(LinkInterface *link, const mavlink_message_t &message);
+    bool containsLink(LinkInterface *link);
+    WeakLinkInterfacePtr primaryLink() const { return _primaryLink; }
+    QString primaryLinkName() const;
+    QStringList linkNames() const;
+    QStringList linkStatuses() const;
+    bool communicationLost() const { return _communicationLost; }
+    bool communicationLostEnabled() const { return _communicationLostEnabled; }
+    void setPrimaryLinkByName(const QString &name);
+    void setCommunicationLostEnabled(bool communicationLostEnabled);
+    void closeVehicle();
 
 signals:
-    void primaryLinkChanged             (void);
-    void allLinksRemoved                (Vehicle* vehicle);
-    void communicationLostChanged       (bool communicationLost);
+    void primaryLinkChanged();
+    void allLinksRemoved(Vehicle *vehicle);
+    void communicationLostChanged(bool communicationLost);
     void communicationLostEnabledChanged(bool communicationLostEnabled);
-    void linkNamesChanged               (void);
-    void linkStatusesChanged            (void);
-    void autoDisconnectChanged          (bool autoDisconnect);
+    void linkNamesChanged();
+    void linkStatusesChanged();
+    void autoDisconnectChanged(bool autoDisconnect);
 
 private slots:
-    void _commLostCheck(void);
+    void _commLostCheck();
 
 private:
-    int                     _containsLinkIndex      (LinkInterface* link);
-    void                    _addLink                (LinkInterface* link);
-    void                    _removeLink             (LinkInterface* link);
-    void                    _linkDisconnected       (void);
-    bool                    _updatePrimaryLink      (void);
-    SharedLinkInterfacePtr  _bestActivePrimaryLink  (void);
-    void                    _commRegainedOnLink     (LinkInterface*  link);
+    int _containsLinkIndex(const LinkInterface *link);
+    void _addLink(LinkInterface *link);
+    void _removeLink(LinkInterface *link);
+    void _linkDisconnected();
+    bool _updatePrimaryLink();
+    SharedLinkInterfacePtr _bestActivePrimaryLink();
+    void _commRegainedOnLink(LinkInterface *link);
 
-    typedef struct LinkInfo {
-        SharedLinkInterfacePtr  link;
-        bool                    commLost = false;
-        QElapsedTimer           heartbeatElapsedTimer;
-    } LinkInfo_t;
+    struct LinkInfo_t {
+        SharedLinkInterfacePtr link;
+        bool commLost = false;
+        QElapsedTimer heartbeatElapsedTimer;
+    };
 
-    Vehicle*                _vehicle                    = nullptr;
-    LinkManager*            _linkMgr                    = nullptr;
-    QTimer                  _commLostCheckTimer;
-    QList<LinkInfo_t>       _rgLinkInfo;
-    WeakLinkInterfacePtr    _primaryLink;
-    bool                    _communicationLost          = false;
-    bool                    _communicationLostEnabled   = true;
-    bool                    _autoDisconnect             = false;    ///< true: Automatically disconnect vehicle when last connection goes away or lost heartbeat
+    Vehicle *_vehicle = nullptr;
+    QTimer *_commLostCheckTimer = nullptr;
+    QList<LinkInfo_t> _rgLinkInfo;
+    WeakLinkInterfacePtr _primaryLink;
+    bool _communicationLost = false;
+    bool _communicationLostEnabled = true;
+    bool _autoDisconnect = false;                           ///< true: Automatically disconnect vehicle when last connection goes away or lost heartbeat
+    bool _allLinksRemovedSignalledByCloseVehicle = false;
 
-    static const int _commLostCheckTimeoutMSecs     = 1000;  // Check for comm lost once a second
-    static const int _heartbeatMaxElpasedMSecs      = 3500;  // No heartbeat for longer than this indicates comm loss
+    static constexpr int _commLostCheckTimeoutMSecs = 1000; ///< Check for comm lost once a second
+    static constexpr int _heartbeatMaxElpasedMSecs = 3500;  ///< No heartbeat for longer than this indicates comm loss
+
+public:
+    /// Heartbeat timeout used in unit tests (much shorter for faster tests)
+    static constexpr int kTestHeartbeatTimeoutMs = 500;
+
+    /// Full comm loss detection timeout for tests: accounts for timer interval + heartbeat timeout + margin.
+    /// Use this in tests waiting for communicationLostChanged or linkStatusesChanged signals.
+    static constexpr int kTestCommLostDetectionTimeoutMs = _commLostCheckTimeoutMSecs + kTestHeartbeatTimeoutMs + 500;
 };

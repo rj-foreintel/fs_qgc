@@ -1,19 +1,7 @@
-/****************************************************************************
- *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 import QtQuick
 
 import QGroundControl
 import QGroundControl.Controls
-import QGroundControl.ScreenTools
-import QGroundControl.Vehicle
-import QGroundControl.Palette
 
 Canvas {
     id:                 control
@@ -23,17 +11,18 @@ Canvas {
 
     property real compassSize
     property real heading
+    property bool simplified:    false
 
     property var _qgcPal: QGroundControl.globalPalette
 
     Connections {
         target:                 _qgcPal
-        onGlobalThemeChanged:   control.requestPaint()
+        function onGlobalThemeChanged() { control.requestPaint() }
     }
 
     onPaint: {
         var ctx = getContext("2d")
-        ctx.strokeStyle = _qgcPal.text
+        ctx.strokeStyle = simplified ? "#EE3424" : _qgcPal.text
         ctx.fillStyle = "#EE3424"
         ctx.lineWidth = 1
         ctx.beginPath()

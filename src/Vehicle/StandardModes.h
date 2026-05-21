@@ -1,22 +1,12 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
-#include "QGCMAVLink.h"
+#include "FirmwarePlugin.h"
+#include "MAVLinkEnums.h"
+#include "MAVLinkMessageType.h"
 
+#include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtCore/QMap>
-#include <QtCore/QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(StandardModesLog)
-
 class Vehicle;
 
 class StandardModes : public QObject
@@ -37,15 +27,8 @@ public:
 
     void availableModesMonitorReceived(uint8_t seq);
 
-    bool supported() const { return _hasModes; }
-
-    QStringList flightModes();
-
-    QString flightMode(uint32_t custom_mode) const;
-
-    bool setFlightMode(const QString& flightMode, uint32_t* custom_mode);
-
     void gotMessage(MAV_RESULT result, const mavlink_message_t &message);
+
 signals:
     void modesUpdated();
     void requestCompleted();
@@ -59,12 +42,8 @@ private:
 
     bool _requestActive{false};
     bool _wantReset{false};
-    QMap<uint32_t, Mode> _nextModes; ///< Modes added by current request
-
-    bool _hasModes{false};
 
     int _lastSeq{-1};
 
-    QMap<uint32_t, Mode> _modes; ///< key is custom_mode
+    FlightModeList _modeList;
 };
-

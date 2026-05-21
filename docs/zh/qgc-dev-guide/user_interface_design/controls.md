@@ -3,7 +3,7 @@
 QGC提供了一组用于构建用户界面的基本控件。 一般来说，它们往往是Qt支持的基本QML控件上方的薄层，Qt控件支持QGC调色板。 In general they tend to be thin layers above the base QML Controls supported by Qt which respect the QGC color palette.
 
 ```
-import QGroundControl.Controls 1.0
+import QGroundControl.Controls
 ```
 
 ## Qt控件
@@ -33,3 +33,4 @@ import QGroundControl.Controls 1.0
 - QGCViewPanel - QGCView内部的主要视图内容。
 - RoundButton - 一个圆形按钮控件，它使用图像作为其内部内容。
 - SetupPage - 所有安装载具组件页面的基本控件。 提供标题，说明和组件页面内容区域。 Provides a title, description and component page contents area.
+- SelectableControl - Allows users to select from a list of controls to display. Right-click on Desktop or Press and Hold on Mobile will show selection UI. Example usage: Allows user to select between multiple Instrument display variants.

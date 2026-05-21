@@ -1,12 +1,3 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
 #include <QtCore/QObject>
@@ -20,7 +11,7 @@
             { QColor(lightDisabled), QColor(lightEnabled) }, \
             { QColor(darkDisabled), QColor(darkEnabled) } \
         }; \
-        qgcApp()->toolbox()->corePlugin()->paletteOverride(#name, colorInfo); \
+        QGCCorePlugin::instance()->paletteOverride(#name, colorInfo); \
         _colorInfoMap[Light][ColorGroupEnabled][QStringLiteral(#name)] = colorInfo[Light][ColorGroupEnabled]; \
         _colorInfoMap[Light][ColorGroupDisabled][QStringLiteral(#name)] = colorInfo[Light][ColorGroupDisabled]; \
         _colorInfoMap[Dark][ColorGroupEnabled][QStringLiteral(#name)] = colorInfo[Dark][ColorGroupEnabled]; \
@@ -34,7 +25,7 @@
             { QColor(disabledColor), QColor(enabledColor) }, \
             { QColor(disabledColor), QColor(enabledColor) } \
         }; \
-        qgcApp()->toolbox()->corePlugin()->paletteOverride(#name, colorInfo); \
+        QGCCorePlugin::instance()->paletteOverride(#name, colorInfo); \
         _colorInfoMap[Light][ColorGroupEnabled][QStringLiteral(#name)] = colorInfo[Light][ColorGroupEnabled]; \
         _colorInfoMap[Light][ColorGroupDisabled][QStringLiteral(#name)] = colorInfo[Light][ColorGroupDisabled]; \
         _colorInfoMap[Dark][ColorGroupEnabled][QStringLiteral(#name)] = colorInfo[Dark][ColorGroupEnabled]; \
@@ -48,7 +39,7 @@
             { QColor(color), QColor(color) }, \
             { QColor(color), QColor(color) } \
         }; \
-        qgcApp()->toolbox()->corePlugin()->paletteOverride(#name, colorInfo); \
+        QGCCorePlugin::instance()->paletteOverride(#name, colorInfo); \
         _colorInfoMap[Light][ColorGroupEnabled][QStringLiteral(#name)] = colorInfo[Light][ColorGroupEnabled]; \
         _colorInfoMap[Light][ColorGroupDisabled][QStringLiteral(#name)] = colorInfo[Light][ColorGroupDisabled]; \
         _colorInfoMap[Dark][ColorGroupEnabled][QStringLiteral(#name)] = colorInfo[Dark][ColorGroupEnabled]; \
@@ -78,7 +69,7 @@
 
  Usage:
 
-        import QGroundControl.Palette 1.0
+         1.0
 
         Rectangle {
             anchors.fill:   parent
@@ -114,6 +105,7 @@ public:
     Q_PROPERTY(QStringList  colors              READ colors             CONSTANT)
 
     DEFINE_QGC_COLOR(window,                        setWindow)
+    DEFINE_QGC_COLOR(windowTransparent,             setWindowTransparent)
     DEFINE_QGC_COLOR(windowShadeLight,              setWindowShadeLight)
     DEFINE_QGC_COLOR(windowShade,                   setWindowShade)
     DEFINE_QGC_COLOR(windowShadeDark,               setWindowShadeDark)
@@ -157,12 +149,9 @@ public:
     DEFINE_QGC_COLOR(toolStripFGColor,              setToolStripFGColor)
     DEFINE_QGC_COLOR(toolStripHoverColor,           setToolStripHoverColor)
     DEFINE_QGC_COLOR(groupBorder,                   setGroupBorder)
-
-#ifdef QGC_UTM_ADAPTER
-    DEFINE_QGC_COLOR(switchUTMSP,                    setSwitchUTMSP)
-    DEFINE_QGC_COLOR(sliderUTMSP,                    setSliderUTMSP)
-    DEFINE_QGC_COLOR(successNotifyUTMSP,             setSuccessNotifyUTMSP)
-#endif
+    DEFINE_QGC_COLOR(modifiedParamValue,            setModifiedParamValue)
+    DEFINE_QGC_COLOR(photoCaptureButtonColor,       setPhotoCaptureButtonColor)
+    DEFINE_QGC_COLOR(videoCaptureButtonColor,       setVideoCaptureButtonColor)
 
      QGCPalette(QObject* parent = nullptr);
     ~QGCPalette();

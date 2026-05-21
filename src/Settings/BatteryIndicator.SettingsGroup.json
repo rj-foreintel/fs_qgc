@@ -3,44 +3,36 @@
     "fileType": "FactMetaData",
     "QGC.MetaData.Facts": [
         {
-            "name": "display",
+            "name": "valueDisplay",
             "shortDesc": "Select values to display in indicator",
             "enumStrings": "Percentage,Voltage,Percentage and Voltage",
             "enumValues": "0,1,2",
             "type": "uint32",
-            "default": false
+            "default": false,
+            "label": "Select values to display in indicator"
         },
         {
             "name": "threshold1",
             "shortDesc": "Battery level threshold 1",
             "type": "uint32",
             "default": 80,
-            "units": "%"
+            "units": "%",
+            "label": "Battery level threshold 1"
         },
         {
             "name": "threshold2",
             "shortDesc": "Battery level threshold 2",
             "type": "uint32",
             "default": 60,
-            "units": "%"
+            "units": "%",
+            "label": "Battery level threshold 2"
         },
         {
-            "name": "threshold1visible",
-            "shortDesc": "Controls the visibility of the 'threshold1visible'",
+            "name": "consolidateMultipleBatteries",
+            "shortDesc": "Consolidate multiple battery readings",
             "type": "bool",
-            "default": true
-        },
-        {
-            "name": "threshold2visible",
-            "shortDesc": "Controls the visibility of the 'threshold2visible'",
-            "type": "bool",
-            "default": true
-        },
-        {
-            "name": "battery_state_display",
-            "shortDesc": "Controls the visibility of the 'Battery State Display'",
-            "type": "bool",
-            "default": true
+            "default": true,
+            "label": "Consolidate multiple battery readings"
         }
     ]
 }

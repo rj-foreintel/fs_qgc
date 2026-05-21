@@ -1,23 +1,16 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
+#include <QtCore/QMap>
+
+#include "QGroundControlQmlGlobal.h"
 #include "VisualMissionItem.h"
 #include "QmlObjectListModel.h"
 #include "FlightPathSegment.h"
 
+class FactMetaData;
 class PlanMasterController;
 class MissionController;
 class KMLPlanDomDocument;
-class SettingsManager;
-class QGCToolbox;
 
 class ComplexMissionItem : public VisualMissionItem
 {
@@ -28,7 +21,7 @@ public:
 
     const ComplexMissionItem& operator=(const ComplexMissionItem& other);
 
-    Q_PROPERTY(QString              patternName         READ patternName            CONSTANT)
+    Q_PROPERTY(QString              patternName         READ patternName            NOTIFY patternNameChanged)
     Q_PROPERTY(double               complexDistance     READ complexDistance        NOTIFY complexDistanceChanged)
     Q_PROPERTY(bool                 presetsSupported    READ presetsSupported       CONSTANT)
     Q_PROPERTY(QStringList          presetNames         READ presetNames            NOTIFY presetNamesChanged)
@@ -93,6 +86,14 @@ public:
 
     virtual void addKMLVisuals(KMLPlanDomDocument& domDocument);
 
+    /// Called by MissionController after inserting a new item when a previous altitude is available and the
+    /// global altitude frame is AltitudeFrameMixed. Override to apply altitude frame context to the item.
+    /// The default implementation is a no-op.
+    ///     @param prevAltFrame     Altitude frame of the previous mission item
+    ///     @param prevAltitude     Altitude of the previous mission item
+    virtual void applyPreviousAltitudeFrame(QGroundControlQmlGlobal::AltitudeFrame prevAltFrame, double prevAltitude)
+        { Q_UNUSED(prevAltFrame); Q_UNUSED(prevAltitude); }
+
     bool presetsSupported   (void) { return !presetsSettingsGroup().isEmpty(); }
     bool isIncomplete       (void) const { return _isIncomplete; }
 
@@ -100,6 +101,7 @@ public:
     static constexpr const char* jsonComplexItemTypeKey = "complexItemType";
 
 signals:
+    void patternNameChanged         (void);
     void complexDistanceChanged     (void);
     void boundingCubeChanged        (void);
     void greatestDistanceToChanged  (void);
@@ -122,9 +124,6 @@ protected:
     QmlObjectListModel  _flightPathSegments;                // Contains FlightPathSegment items
 
     QMap<QString, FactMetaData*> _metaDataMap;
-
-    QGCToolbox* _toolbox;
-    SettingsManager* _settingsManager;
 
     static constexpr const char* _presetSettingsKey =        "_presets";
 };

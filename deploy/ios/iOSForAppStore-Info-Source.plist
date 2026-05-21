@@ -14,6 +14,8 @@
 	<string></string>
 	<key>NSCameraUsageDescription</key>
 	<string>QGC uses UVC devices for video streaming.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Qt Multimedia for iOS uses the camera and microphone.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We do not access it. Apple thinks we do.</string>
 	<key>UILaunchStoryboardName</key>
@@ -49,7 +51,7 @@
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Ground Station Location</string>
     <key>NSBluetoothPeripheralUsageDescription</key>
-    <string>QGroundControl would like to use bluetooth.</string>    
+    <string>QGroundControl would like to use bluetooth.</string>
 	<key>UIRequiresFullScreen</key>
 	<true/>
 	<key>UISupportedInterfaceOrientations</key>

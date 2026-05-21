@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Run this from root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+IMAGE_NAME="qgc-ubuntu-docker"
+BUILD_TYPE="${1:-Release}"
 
-set -e
+docker build \
+  --file "${SCRIPT_DIR}/Dockerfile-build-ubuntu" \
+  -t "${IMAGE_NAME}" \
+  "${SOURCE_DIR}"
 
-docker build --file ./deploy/docker/Dockerfile-build-ubuntu -t qgc-ubuntu-docker .
-docker run --cap-add SYS_ADMIN --device /dev/fuse --security-opt apparmor:unconfined --rm -v ${PWD}:/project/source -v ${PWD}/build:/project/build qgc-ubuntu-docker
+SOURCE_DIR="${SOURCE_DIR}" "${SCRIPT_DIR}/docker-run.sh" --fuse "${IMAGE_NAME}" "${BUILD_TYPE}"

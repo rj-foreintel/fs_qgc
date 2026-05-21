@@ -1,34 +1,32 @@
-find_package(Qt6 REQUIRED COMPONENTS Core)
+# ============================================================================
+# LibEvents - MAVLink Event Handling
+# Event logging, health reporting, and arming checks
+# ============================================================================
 
-include(FetchContent)
-FetchContent_Declare(libevents
-    GIT_REPOSITORY https://github.com/mavlink/libevents.git
-    GIT_TAG main
-    GIT_SHALLOW TRUE
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        EventHandler.cc
+        EventHandler.h
+        HealthAndArmingCheckReport.cc
+        HealthAndArmingCheckReport.h
+        LibEvents.cc
+        LibEvents.h
+        MAVLinkEventManager.cc
+        MAVLinkEventManager.h
+)
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# ============================================================================
+# LibEvents Library Integration
+# ============================================================================
+
+CPMAddPackage(
+    NAME libevents
+    GITHUB_REPOSITORY mavlink/libevents
+    GIT_TAG 840a88ea226d4eb0fd4c391ce860317422756435
     SOURCE_SUBDIR libs/cpp
 )
-FetchContent_MakeAvailable(libevents)
 
-qt_add_library(LibEventsWrapper STATIC
-    EventHandler.cc
-    EventHandler.h
-    HealthAndArmingCheckReport.cc
-    HealthAndArmingCheckReport.h
-    logging.cpp
-)
-
-target_link_libraries(LibEventsWrapper
-    PRIVATE
-        QmlControls
-        Utilities
-    PUBLIC
-        Qt6::Core
-        libevents
-        MAVLink
-)
-
-target_include_directories(LibEventsWrapper
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${libevents_SOURCE_DIR}/libs/cpp
-)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE libevents)
+target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE ${libevents_SOURCE_DIR}/libs/cpp)

@@ -3,10 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import QGroundControl
-import QGroundControl.ScreenTools
 import QGroundControl.Controls
 import QGroundControl.FactControls
-import QGroundControl.Palette
 
 // Camera calculator "Grid" section for mission item editors
 Column {
@@ -20,9 +18,7 @@ Column {
 
     property real   _margin:            ScreenTools.defaultFontPixelWidth / 2
     property real   _fieldWidth:        ScreenTools.defaultFontPixelWidth * 10.5
-    property var    _cameraList:        [ ]
     property var    _vehicle:           QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle : QGroundControl.multiVehicleManager.offlineEditingVehicle
-    property var    _vehicleCameraList: _vehicle ? _vehicle.staticCameraList : []
     property bool   _cameraComboFilled: false
 
     readonly property int _gridTypeManual:          0
@@ -91,7 +87,7 @@ Column {
 
             AltitudeFactTextField {
                 fact:                       cameraCalc.distanceToSurface
-                altitudeMode:               cameraCalc.distanceMode
+                altitudeFrame:               cameraCalc.distanceMode
                 enabled:                    fixedDistanceRadio.checked
                 Layout.fillWidth:           true
             }
@@ -124,7 +120,7 @@ Column {
         QGCLabel { text: distanceToSurfaceLabel }
         AltitudeFactTextField {
             fact:                       cameraCalc.distanceToSurface
-            altitudeMode:               cameraCalc.distanceMode
+            altitudeFrame:               cameraCalc.distanceMode
             Layout.fillWidth:           true
         }
 

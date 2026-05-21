@@ -1,14 +1,15 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
-import QGroundControl.FactSystem
+import QGroundControl
 import QGroundControl.FactControls
 import QGroundControl.Controls
-import QGroundControl.Controllers
-import QGroundControl.Palette
 
 Item {
-    anchors.fill:       parent
+    implicitWidth: mainLayout.implicitWidth
+    implicitHeight: mainLayout.implicitHeight
+    width: parent.width  // grows when Loader is wider than implicitWidth
 
     AirframeComponentController { id: controller; }
 
@@ -17,8 +18,10 @@ Item {
 
     property bool autoStartSet: sysAutoStartFact ? (sysAutoStartFact.value !== 0) : false
 
-    Column {
-        anchors.fill:       parent
+    ColumnLayout {
+        id: mainLayout
+        spacing: 0
+
         VehicleSummaryRow {
             labelText: qsTr("System ID")
             valueText: sysIdFact ? sysIdFact.valueString : ""

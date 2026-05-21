@@ -1,40 +1,31 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- * License for the COPERNICUS dataset hosted on https://terrain-ce.suite.auterion.com/:
- *
- * © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under
- * COPERNICUS by the European Union and ESA; all rights reserved.
- *
- ****************************************************************************/
-
 #include "ElevationMapProvider.h"
+#include "QGCTileSet.h"
 #include "TerrainTileCopernicus.h"
+
+#include <QtCore/QDir>
+#include <QtCore/QTemporaryFile>
 
 int CopernicusElevationProvider::long2tileX(double lon, int z) const
 {
     Q_UNUSED(z)
-    return static_cast<int>(floor((lon + 180.0) / TerrainTileCopernicus::tileSizeDegrees));
+    return static_cast<int>(floor((lon + 180.0) / TerrainTileCopernicus::kTileSizeDegrees));
 }
 
 int CopernicusElevationProvider::lat2tileY(double lat, int z) const
 {
     Q_UNUSED(z)
-    return static_cast<int>(floor((lat + 90.0) / TerrainTileCopernicus::tileSizeDegrees));
+    return static_cast<int>(floor((lat + 90.0) / TerrainTileCopernicus::kTileSizeDegrees));
 }
 
 QString CopernicusElevationProvider::_getURL(int x, int y, int zoom) const
 {
     Q_UNUSED(zoom)
-    return _mapUrl
-        .arg((static_cast<double>(y) * TerrainTileCopernicus::tileSizeDegrees) - 90.0)
-        .arg((static_cast<double>(x) * TerrainTileCopernicus::tileSizeDegrees) - 180.0)
-        .arg((static_cast<double>(y + 1) * TerrainTileCopernicus::tileSizeDegrees) - 90.0)
-        .arg((static_cast<double>(x + 1) * TerrainTileCopernicus::tileSizeDegrees) - 180.0);
+    const double lat1 = (static_cast<double>(y) * TerrainTileCopernicus::kTileSizeDegrees) - 90.0;
+    const double lon1 = (static_cast<double>(x) * TerrainTileCopernicus::kTileSizeDegrees) - 180.0;
+    const double lat2 = (static_cast<double>(y + 1) * TerrainTileCopernicus::kTileSizeDegrees) - 90.0;
+    const double lon2 = (static_cast<double>(x + 1) * TerrainTileCopernicus::kTileSizeDegrees) - 180.0;
+    const QString url = _mapUrl.arg(lat1).arg(lon1).arg(lat2).arg(lon2);
+    return url;
 }
 
 QGCTileSet CopernicusElevationProvider::getTileCount(int zoom, double topleftLon,
@@ -59,5 +50,5 @@ QGCTileSet CopernicusElevationProvider::getTileCount(int zoom, double topleftLon
 
 QByteArray CopernicusElevationProvider::serialize(const QByteArray &image) const
 {
-    return TerrainTileCopernicus::serializeFromJson(image);
+    return TerrainTileCopernicus::serializeFromData(image);
 }

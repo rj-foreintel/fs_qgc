@@ -1,34 +1,22 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
 #include <QtCore/QObject>
 #include <QtCore/QDateTime>
 #include <QtCore/QTimer>
 #include <QtPositioning/QGeoPositionInfo>
-#include <QtCore/QLoggingCategory>
+#include <QtQmlIntegration/QtQmlIntegration>
 
-#include "QGCMAVLink.h"
-
-Q_DECLARE_LOGGING_CATEGORY(RemoteIDManagerLog)
+#include "MAVLinkMessageType.h"
 
 class RemoteIDSettings;
-class QGCPositionManager;
 class Vehicle;
-class MAVLinkProtocol;
 
 // Supporting Open Drone ID protocol
 class RemoteIDManager : public QObject
 {
     Q_OBJECT
-
+    QML_ELEMENT
+    QML_UNCREATABLE("")
 public:
     RemoteIDManager(Vehicle* vehicle);
 
@@ -40,7 +28,6 @@ public:
     Q_PROPERTY(bool    basicIDGood          READ basicIDGood        NOTIFY basicIDGoodChanged)
     Q_PROPERTY(bool    emergencyDeclared    READ emergencyDeclared  NOTIFY emergencyDeclaredChanged)
     Q_PROPERTY(bool    operatorIDGood       READ operatorIDGood     NOTIFY operatorIDGoodChanged)
-
 
     Q_INVOKABLE void checkOperatorID(const QString& operatorID);
     Q_INVOKABLE void setOperatorID();
@@ -91,7 +78,7 @@ private:
 
     // Self ID
     void        _sendSelfIDMsg ();
-    const char* _getSelfIDDescription();
+    QByteArray _getSelfIDDescription() const;
 
     // Operator ID
     void        _sendOperatorID ();
@@ -103,13 +90,14 @@ private:
     // Basic ID
     void        _sendBasicID();
 
+    // GCS GPS status
+    void        _updateGcsGpsStatus(bool gpsGood, const QString& error = QString());
+
     bool _isEUOperatorIDValid(const QString& operatorID) const;
     QChar _calculateLuhnMod36(const QString& input) const;
 
-    MAVLinkProtocol*    _mavlink;
     Vehicle*            _vehicle;
     RemoteIDSettings*   _settings;
-    QGCPositionManager* _positionManager;
 
     // Flags ODID
     bool    _available = false;
@@ -117,6 +105,7 @@ private:
     QString _armStatusError;
     bool    _commsGood;
     bool    _gcsGPSGood;
+    QString _gcsGPSError;
     bool    _basicIDGood;
     bool    _GCSBasicIDValid;
     bool    _operatorIDGood;

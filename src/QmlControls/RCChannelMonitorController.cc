@@ -1,34 +1,52 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
-
 #include "RCChannelMonitorController.h"
 #include "Vehicle.h"
+#include "QGCLoggingCategory.h"
 
-RCChannelMonitorController::RCChannelMonitorController(void)
-    : _chanCount(0)
+QGC_LOGGING_CATEGORY(RCChannelMonitorControllerLog, "QMLControls.RCChannelMonitorController")
+
+RCChannelMonitorController::RCChannelMonitorController(QObject *parent)
+    : FactPanelController(parent)
 {
-    connect(_vehicle, &Vehicle::rcChannelsChanged, this, &RCChannelMonitorController::_rcChannelsChanged);
+    // qCDebug(RCChannelMonitorControllerLog) << Q_FUNC_INFO << this;
+
+    _connectToSignal();
 }
 
-void RCChannelMonitorController::_rcChannelsChanged(int channelCount, int pwmValues[QGCMAVLink::maxRcChannels])
+RCChannelMonitorController::~RCChannelMonitorController()
 {
-    for (int channel=0; channel<channelCount; channel++) {
-        int channelValue = pwmValues[channel];
+    // qCDebug(RCChannelMonitorControllerLog) << Q_FUNC_INFO << this;
+}
 
-        if (_chanCount != channelCount) {
-            _chanCount = channelCount;
-            emit channelCountChanged(_chanCount);
-        }
+void RCChannelMonitorController::setClampValues(bool clamp)
+{
+    if (_clampValues != clamp) {
+        _clampValues = clamp;
+        _connectToSignal();
+        emit clampValuesChanged();
+    }
+}
 
-        if (channelValue != -1) {
-            emit channelRCValueChanged(channel, channelValue);
-        }
+void RCChannelMonitorController::_connectToSignal()
+{
+    disconnect(_vehicle, &Vehicle::rcChannelsClampedChanged, this, &RCChannelMonitorController::channelValuesChanged);
+    disconnect(_vehicle, &Vehicle::rcChannelsRawChanged, this, &RCChannelMonitorController::channelValuesChanged);
+    if (_clampValues) {
+        (void) connect(_vehicle, &Vehicle::rcChannelsClampedChanged, this, &RCChannelMonitorController::channelValuesChanged);
+    } else {
+        (void) connect(_vehicle, &Vehicle::rcChannelsRawChanged, this, &RCChannelMonitorController::channelValuesChanged);
+    }
+}
+
+void RCChannelMonitorController::channelValuesChanged(QVector<int> pwmValues)
+{
+    int channelCount = pwmValues.size();
+
+    if (_chanCount != channelCount) {
+        _chanCount = channelCount;
+        emit channelCountChanged(_chanCount);
+    }
+
+    for (int channel = 0; channel < channelCount; channel++) {
+        emit channelValueChanged(channel, pwmValues[channel]);
     }
 }

@@ -3,10 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import QGroundControl
-import QGroundControl.ScreenTools
 import QGroundControl.Controls
 import QGroundControl.FactControls
-import QGroundControl.Palette
 
 // Camera calculator "Camera" section for mission item editors
 ColumnLayout {
@@ -17,7 +15,6 @@ ColumnLayout {
     property real   _margin:            ScreenTools.defaultFontPixelWidth / 2
     property real   _fieldWidth:        ScreenTools.defaultFontPixelWidth * 10.5
     property var    _vehicle:           QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle : QGroundControl.multiVehicleManager.offlineEditingVehicle
-    property var    _vehicleCameraList: _vehicle ? _vehicle.staticCameraList : []
 
     Component.onCompleted: {
         cameraBrandCombo.selectCurrentBrand()
@@ -39,7 +36,7 @@ ColumnLayout {
 
             Connections {
                 target:                 cameraCalc
-                onCameraBrandChanged:   cameraBrandCombo.selectCurrentBrand()
+                function onCameraBrandChanged() { cameraBrandCombo.selectCurrentBrand() }
             }
 
             function selectCurrentBrand() {
@@ -57,7 +54,7 @@ ColumnLayout {
 
             Connections {
                 target:                 cameraCalc
-                onCameraModelChanged:   cameraModelCombo.selectCurrentModel()
+                function onCameraModelChanged() { cameraModelCombo.selectCurrentModel() }
             }
 
             function selectCurrentModel() {

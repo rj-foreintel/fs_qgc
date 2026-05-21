@@ -1,30 +1,17 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "LinkInterface.h"
+#include "MAVLinkLib.h"
 #include "LinkManager.h"
+#include "AppMessages.h"
 #include "QGCApplication.h"
 #include "QGCLoggingCategory.h"
-#include "MAVLinkSigning.h"
-#include "SettingsManager.h"
-#include "AppSettings.h"
-
-#ifdef QT_DEBUG
-#include "MockLink.h"
-#endif
+#include "SigningController.h"
 
 #include <QtQml/QQmlEngine>
 
-QGC_LOGGING_CATEGORY(LinkInterfaceLog, "LinkInterfaceLog")
+QGC_LOGGING_CATEGORY(LinkInterfaceLog, "Comms.LinkInterface")
 
 LinkInterface::LinkInterface(SharedLinkConfigurationPtr &config, QObject *parent)
-    : QThread(parent)
+    : QObject(parent)
     , _config(config)
 {
     QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
@@ -33,7 +20,7 @@ LinkInterface::LinkInterface(SharedLinkConfigurationPtr &config, QObject *parent
 LinkInterface::~LinkInterface()
 {
     if (_vehicleReferenceCount != 0) {
-        qCWarning(LinkInterfaceLog) << Q_FUNC_INFO << "still have vehicle references:" << _vehicleReferenceCount;
+        qCWarning(LinkInterfaceLog) << "still have vehicle references:" << _vehicleReferenceCount;
     }
 
     _config.reset();
@@ -42,7 +29,7 @@ LinkInterface::~LinkInterface()
 uint8_t LinkInterface::mavlinkChannel() const
 {
     if (!mavlinkChannelIsSet()) {
-        qCWarning(LinkInterfaceLog) << Q_FUNC_INFO << "mavlinkChannelIsSet() == false";
+        qCWarning(LinkInterfaceLog) << "mavlinkChannelIsSet() == false";
     }
 
     return _mavlinkChannel;
@@ -53,59 +40,53 @@ bool LinkInterface::mavlinkChannelIsSet() const
     return (LinkManager::invalidMavlinkChannel() != _mavlinkChannel);
 }
 
-bool LinkInterface::initMavlinkSigning(void)
-{
-    if (!isSecureConnection()) {
-        auto appSettings = qgcApp()->toolbox()->settingsManager()->appSettings();
-        QByteArray signingKeyBytes = appSettings->mavlink2SigningKey()->rawValue().toByteArray();
-        if (MAVLinkSigning::initSigning(static_cast<mavlink_channel_t>(_mavlinkChannel), signingKeyBytes, MAVLinkSigning::insecureConnectionAccceptUnsignedCallback)) {
-            if (signingKeyBytes.isEmpty()) {
-                qCDebug(LinkInterfaceLog) << "Signing disabled on channel" << _mavlinkChannel;
-            } else {
-                qCDebug(LinkInterfaceLog) << "Signing enabled on channel" << _mavlinkChannel;
-            }
-        } else {
-            qWarning() << Q_FUNC_INFO << "Failed To enable Signing on channel" << _mavlinkChannel;
-            // FIXME: What should we do here?
-            return false;
-        }
-    }
-
-    return true;
-}
-
 bool LinkInterface::_allocateMavlinkChannel()
 {
     Q_ASSERT(!mavlinkChannelIsSet());
 
     if (mavlinkChannelIsSet()) {
-        qCWarning(LinkInterfaceLog) << Q_FUNC_INFO << "already have" << _mavlinkChannel;
+        qCWarning(LinkInterfaceLog) << "already have" << _mavlinkChannel;
         return true;
     }
 
-    _mavlinkChannel = qgcApp()->toolbox()->linkManager()->allocateMavlinkChannel();
+    _mavlinkChannel = LinkManager::instance()->allocateMavlinkChannel();
 
     if (!mavlinkChannelIsSet()) {
-        qCWarning(LinkInterfaceLog) << Q_FUNC_INFO << "failed";
+        qCWarning(LinkInterfaceLog) << "failed";
         return false;
     }
 
     qCDebug(LinkInterfaceLog) << "_allocateMavlinkChannel" << _mavlinkChannel;
 
-    initMavlinkSigning();
+    mavlink_set_proto_version(_mavlinkChannel, MAVLINK_VERSION); // We only support v2 protcol
+
+    _signingController = std::make_unique<SigningController>(static_cast<mavlink_channel_t>(_mavlinkChannel));
+    _signingController->clearSigning();
+
+    qCDebug(LinkInterfaceLog) << "SigningController created for channel" << _mavlinkChannel
+                              << (isSecureConnection() ? "(secure)" : "(will auto-detect)");
 
     return true;
 }
 
 void LinkInterface::_freeMavlinkChannel()
 {
-    qCDebug(LinkInterfaceLog) << Q_FUNC_INFO << _mavlinkChannel;
+    qCDebug(LinkInterfaceLog) << _mavlinkChannel;
 
     if (!mavlinkChannelIsSet()) {
         return;
     }
 
-    qgcApp()->toolbox()->linkManager()->freeMavlinkChannel(_mavlinkChannel);
+    // Destroy the controller before freeing the channel so it can flush the final timestamp.
+    _signingController.reset();
+
+    // mavlink_reset_channel_status only resets parse_state — null signing/streams explicitly to avoid dangling derefs.
+    mavlink_status_t* const status = mavlink_get_channel_status(_mavlinkChannel);
+    status->signing = nullptr;
+    status->signing_streams = nullptr;
+    mavlink_reset_channel_status(_mavlinkChannel);
+
+    LinkManager::instance()->freeMavlinkChannel(_mavlinkChannel);
     _mavlinkChannel = LinkManager::invalidMavlinkChannel();
 }
 
@@ -121,7 +102,7 @@ void LinkInterface::removeVehicleReference()
         _vehicleReferenceCount--;
         _connectionRemoved();
     } else {
-        qCWarning(LinkInterfaceLog) << Q_FUNC_INFO << "called with no vehicle references";
+        qCWarning(LinkInterfaceLog) << "called with no vehicle references";
     }
 }
 
@@ -135,12 +116,18 @@ void LinkInterface::_connectionRemoved()
     }
 }
 
-void LinkInterface::setSigningSignatureFailure(bool failure)
+void LinkInterface::reportMavlinkV1Traffic()
 {
-    if (_signingSignatureFailure != failure) {
-        _signingSignatureFailure = failure;
-        if (_signingSignatureFailure) {
-            emit communicationError(tr("Signing Failure"), tr("Signing signature mismatch"));
-        }
+    if (!_mavlinkV1TrafficReported) {
+        _mavlinkV1TrafficReported = true;
+
+        const SharedLinkConfigurationPtr linkConfig = linkConfiguration();
+        const QString linkName = linkConfig ? linkConfig->name() : QStringLiteral("unknown");
+        qCWarning(LinkInterfaceLog) << "MAVLink v1 traffic detected on link" << linkName;
+        const QString message = tr("MAVLink v1 traffic detected on link '%1'. "
+                                   "%2 only supports MAVLink v2. "
+                                   "Please ensure your vehicle is configured to use MAVLink v2.")
+                                    .arg(linkName).arg(qgcApp()->applicationName());
+        QGC::showAppMessage(message);
     }
 }

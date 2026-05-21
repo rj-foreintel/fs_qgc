@@ -1,37 +1,78 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
+
+#include <QtCore/QObject>
+#include <QtCore/QSet>
+#include <QtQmlIntegration/QtQmlIntegration>
 
 #include "FactPanelController.h"
 #include "QmlObjectListModel.h"
 #include "FactMetaData.h"
 
-#include <QtCore/QObject>
-
 class ParameterManager;
+
+class ParameterTableModel : public QAbstractTableModel
+{
+    Q_OBJECT
+
+public:
+    explicit ParameterTableModel(QObject* parent = nullptr);
+    ~ParameterTableModel() override;
+
+    typedef QVector<QVariant> ColumnData;
+
+    enum {
+        FactRole = Qt::UserRole + 1
+    };
+
+    enum {
+        FavColumn = 0,
+        NameColumn,
+        ValueColumn,
+        DescriptionColumn,
+    };
+
+    Q_PROPERTY(int rowCount READ rowCount NOTIFY rowCountChanged)
+
+    void append      (Fact* fact);
+    void insert      (int row, Fact* fact);
+    void clear       ();
+    void beginReset  (); ///< Supports nesting - only outermost call has effect
+    void endReset    (); ///< Supports nesting - only outermost call has effect
+    Fact*            factAt(int row) const;
+
+    // Overrides from QAbstractTableModel
+    int         rowCount    (const QModelIndex & parent = QModelIndex()) const override;
+    int         columnCount (const QModelIndex &parent = QModelIndex()) const override;
+    QVariant    data        (const QModelIndex & index, int role = Qt::DisplayRole) const override;
+    QVariant    headerData  (int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    QHash<int, QByteArray> roleNames(void) const override;
+
+    signals:
+    void rowCountChanged(int count);
+
+private:
+    bool _isResetting() const { return _resetNestingCount > 0; }
+
+    int                 _tableViewColCount = 4;
+    QList<ColumnData>   _tableData;
+    uint                _resetNestingCount = 0;
+};
 
 class ParameterEditorGroup : public QObject
 {
     Q_OBJECT
 
 public:
-    ParameterEditorGroup(QObject* parent) : QObject(parent) { }
+    ParameterEditorGroup(QObject* parent);
 
     Q_PROPERTY(QString              name    MEMBER name     CONSTANT)
-    Q_PROPERTY(QmlObjectListModel*  facts   READ getFacts   CONSTANT)
+    Q_PROPERTY(QAbstractTableModel* facts   READ getFacts   CONSTANT)
 
-    QmlObjectListModel*  getFacts(void) { return &facts; }
+    QAbstractTableModel*  getFacts(void) { return &facts; }
 
     int                 componentId;
     QString             name;
-    QmlObjectListModel  facts;
+    ParameterTableModel facts;
 };
 
 class ParameterEditorCategory : public QObject
@@ -83,24 +124,25 @@ signals:
 class ParameterEditorController : public FactPanelController
 {
     Q_OBJECT
-
-public:
-    ParameterEditorController(void);
-    ~ParameterEditorController();
-
-    Q_PROPERTY(QString              searchText          MEMBER _searchText                                          NOTIFY searchTextChanged)
-    Q_PROPERTY(QmlObjectListModel*  categories          READ categories                                             CONSTANT)
-    Q_PROPERTY(QObject*             currentCategory     READ currentCategory        WRITE setCurrentCategory        NOTIFY currentCategoryChanged)
-    Q_PROPERTY(QObject*             currentGroup        READ currentGroup           WRITE setCurrentGroup           NOTIFY currentGroupChanged)
-    Q_PROPERTY(QmlObjectListModel*  parameters          MEMBER _parameters                                          NOTIFY parametersChanged)
-    Q_PROPERTY(bool                 showModifiedOnly    MEMBER _showModifiedOnly                                    NOTIFY showModifiedOnlyChanged)
+    QML_ELEMENT
+    Q_PROPERTY(QString              searchText              MEMBER _searchText                                          NOTIFY searchTextChanged)
+    Q_PROPERTY(QmlObjectListModel*  categories              READ categories                                             CONSTANT)
+    Q_PROPERTY(QObject*             currentCategory         READ currentCategory            WRITE setCurrentCategory    NOTIFY currentCategoryChanged)
+    Q_PROPERTY(QObject*             currentGroup            READ currentGroup               WRITE setCurrentGroup       NOTIFY currentGroupChanged)
+    Q_PROPERTY(QAbstractTableModel* parameters              MEMBER _parameters                                          NOTIFY parametersChanged)
+    Q_PROPERTY(bool                 showModifiedOnly        MEMBER _showModifiedOnly                                    NOTIFY showModifiedOnlyChanged)
+    Q_PROPERTY(bool                 showFavoritesOnly       MEMBER _showFavoritesOnly                                   NOTIFY showFavoritesOnlyChanged)
+    Q_PROPERTY(bool                 hideReadOnly            MEMBER _hideReadOnly                                        NOTIFY hideReadOnlyChanged)
+    Q_PROPERTY(QStringList          favoriteParameterNames  READ favoriteParameterNames                                 NOTIFY favoritesChanged)
 
     // These property are related to the diff associated with a load from file
-    Q_PROPERTY(bool                 diffOtherVehicle        MEMBER _diffOtherVehicle        NOTIFY diffOtherVehicleChanged)
-    Q_PROPERTY(bool                 diffMultipleComponents  MEMBER _diffMultipleComponents  NOTIFY diffMultipleComponentsChanged)
-    Q_PROPERTY(QmlObjectListModel*  diffList                READ diffList                   CONSTANT)
+    Q_PROPERTY(bool                 diffOtherVehicle        MEMBER _diffOtherVehicle                                    NOTIFY diffOtherVehicleChanged)
+    Q_PROPERTY(bool                 diffMultipleComponents  MEMBER _diffMultipleComponents                              NOTIFY diffMultipleComponentsChanged)
+    Q_PROPERTY(QmlObjectListModel*  diffList                READ diffList                                               CONSTANT)
 
-    Q_INVOKABLE QStringList searchParameters(const QString& searchText, bool searchInName=true, bool searchInDescriptions=true);
+public:
+    explicit ParameterEditorController(QObject *parent = nullptr);
+    ~ParameterEditorController();
 
     Q_INVOKABLE void saveToFile                     (const QString& filename);
     Q_INVOKABLE bool buildDiffFromFile              (const QString& filename);
@@ -109,11 +151,15 @@ public:
     Q_INVOKABLE void refresh                        (void);
     Q_INVOKABLE void resetAllToDefaults             (void);
     Q_INVOKABLE void resetAllToVehicleConfiguration (void);
+    Q_INVOKABLE void toggleFavorite                 (const QString& paramName);
+    Q_INVOKABLE bool isFavorite                     (const QString& paramName) const;
+    Q_INVOKABLE void clearAllFavorites              (void);
 
-    QObject*            currentCategory     (void) { return _currentCategory; }
-    QObject*            currentGroup        (void) { return _currentGroup; }
-    QmlObjectListModel* categories          (void) { return &_categories; }
-    QmlObjectListModel* diffList            (void) { return &_diffList; }
+    QObject*            currentCategory         (void) { return _currentCategory; }
+    QObject*            currentGroup            (void) { return _currentGroup; }
+    QmlObjectListModel* categories              (void) { return &_categories; }
+    QmlObjectListModel* diffList                (void) { return &_diffList; }
+    QStringList         favoriteParameterNames  (void) const;
     void                setCurrentCategory  (QObject* currentCategory);
     void                setCurrentGroup     (QObject* currentGroup);
 
@@ -122,6 +168,9 @@ signals:
     void currentCategoryChanged         (void);
     void currentGroupChanged            (void);
     void showModifiedOnlyChanged        (void);
+    void showFavoritesOnlyChanged       (void);
+    void hideReadOnlyChanged            (void);
+    void favoritesChanged               (void);
     void diffOtherVehicleChanged        (bool diffOtherVehicle);
     void diffMultipleComponentsChanged  (bool diffMultipleComponents);
     void parametersChanged              (void);
@@ -130,25 +179,33 @@ private slots:
     void _currentCategoryChanged(void);
     void _currentGroupChanged   (void);
     void _searchTextChanged     (void);
+    void _hideReadOnlyChanged   (void);
     void _buildLists            (void);
     void _buildListsForComponent(int compId);
     void _factAdded             (int compId, Fact* fact);
 
 private:
     bool _shouldShow(Fact *fact) const;
+    void _performSearch();
+    void _loadFavorites();
+    void _saveFavorites();
 
 private:
     ParameterManager*           _parameterMgr           = nullptr;
     QString                     _searchText;
+    QTimer                      _searchTimer;
     ParameterEditorCategory*    _currentCategory        = nullptr;
     ParameterEditorGroup*       _currentGroup           = nullptr;
     bool                        _showModifiedOnly       = false;
+    bool                        _showFavoritesOnly      = false;
+    bool                        _hideReadOnly           = false;
     bool                        _diffOtherVehicle       = false;
     bool                        _diffMultipleComponents = false;
+    QSet<QString>               _favoriteNames;
 
     QmlObjectListModel          _categories;
     QmlObjectListModel          _diffList;
-    QmlObjectListModel          _searchParameters;
-    QmlObjectListModel*         _parameters             = nullptr;
+    ParameterTableModel         _searchParameters;
+    QAbstractTableModel*        _parameters             = nullptr;
     QMap<QString, ParameterEditorCategory*> _mapCategoryName2Category;
 };

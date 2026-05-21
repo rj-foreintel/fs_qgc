@@ -5,7 +5,7 @@ _Plan View_, aracınız için _ otonom görevler _ planlamak ve onları araca y�
 Ayrıca eğer yazılım tarafından destekleniyorsa [GeoFence](plan_geofence.md) ve [Rally Points](plan_rally_points.md)'leri ayalarmak için kullanılır.
 
 <span id="plan_screenshot"></span>
-![Plan Ekranı](../../../assets/plan/plan_view_overview.jpg)
+![Plan Ekranı](../../../assets/plan/plan_view_overview.png)
 
 ## Kullanıcı Arayüzü'ne Genel Bakış {#ui_overview}
 
@@ -84,7 +84,7 @@ _Dosya araçları_ aşağıdaki fonksiyonları sağlar:
 
 ### Şablon
 
-[Pattern](Pattern.md) aracı, [gözlem](../plan_view/pattern_survey.md) ve [yapı taramaları](../plan_view/pattern_structure_scan_v2.md) da dahil olmak üzere karmaşık şekillerin uçulması için görevlerin oluşturulmasını basitleştirir.
+The [Pattern](pattern.md) tool simplifies the creation of missions for flying complex geometries, including [surveys](../plan_view/pattern_survey.md) and [structure scans](../plan_view/pattern_structure_scan_v2.md).
 
 ## Görev Komutları Listesi {#mission_command_list}
 
@@ -199,5 +199,5 @@ Bu olasılığı analiz etmek için, Plan yükleme/indirme için [ Console Loggi
 
 ## Daha Fazla Bilgi
 
-- [QGC v3.2 sürümü](../releases/stable_v3.2_long.md#plan_view) için yeni plan ekranı özellikleri
-- [QGC v3.3 sürümü](../releases/stable_v3.3_long.md#plan_view) için yeni plan ekranı özellikleri
+- New Plan View features for [QGC release v3.2](../releases/release_note_stable_v3.md#plan_view)
+- New Plan View features for [QGC release v3.3](../releases/release_note_stable_v3.md#plan-view-1)

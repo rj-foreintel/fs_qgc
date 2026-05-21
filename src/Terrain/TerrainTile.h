@@ -1,30 +1,18 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
 #include <QtCore/QList>
-#include <QtCore/QLoggingCategory>
-
 class QGeoCoordinate;
-
-Q_DECLARE_LOGGING_CATEGORY(TerrainTileLog)
+class TerrainTileTest;
 
 class TerrainTile
 {
-public:
-    TerrainTile();
+    friend class TerrainTileTest;
 
+public:
     /// Constructor from serialized elevation data (either from file or web)
     ///    @param document
     explicit TerrainTile(const QByteArray &byteArray);
-    ~TerrainTile();
+    virtual ~TerrainTile();
 
     /// Check whether valid data is loaded
     ///    @return true if data is valid
@@ -53,12 +41,12 @@ protected:
         int16_t minElevation, maxElevation;
         double  avgElevation;
         int16_t gridSizeLat, gridSizeLon;
-    };
+    } Q_PACKED;
 
 private:
     TileInfo_t _tileInfo{};
-    QList<QList<int16_t>> _elevationData;   /// 2D elevation data array
-    double _cellSizeLat = 0.0;              /// data grid size in latitude direction
-    double _cellSizeLon = 0.0;              /// data grid size in longitude direction
-    bool _isValid = false;                  /// data loaded is valid
+    QList<QList<int16_t>> _elevationData;   ///< 2D elevation data array
+    double _cellSizeLat = 0.0;              ///< data grid size in latitude direction
+    double _cellSizeLon = 0.0;              ///< data grid size in longitude direction
+    bool _isValid = false;                  ///< data loaded is valid
 };

@@ -1,15 +1,5 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "ComplexMissionItem.h"
-#include "QGCApplication.h"
-#include "QGCToolbox.h"
+#include "AppMessages.h"
 #include "QGCCorePlugin.h"
 #include "QGCOptions.h"
 #include "PlanMasterController.h"
@@ -23,8 +13,6 @@
 
 ComplexMissionItem::ComplexMissionItem(PlanMasterController* masterController, bool flyView)
     : VisualMissionItem (masterController, flyView)
-    , _toolbox          (qgcApp()->toolbox())
-    , _settingsManager  (_toolbox->settingsManager())
 {
     connect(_missionController, &MissionController::plannedHomePositionChanged,         this, &ComplexMissionItem::_amslEntryAltChanged);
     connect(_missionController, &MissionController::plannedHomePositionChanged,         this, &ComplexMissionItem::_amslExitAltChanged);
@@ -53,19 +41,19 @@ QStringList ComplexMissionItem::presetNames(void)
 void ComplexMissionItem::loadPreset(const QString& name)
 {
     Q_UNUSED(name);
-    qgcApp()->showAppMessage(tr("This Pattern does not support Presets."));
+    QGC::showAppMessage(tr("This Pattern does not support Presets."));
 }
 
 void ComplexMissionItem::savePreset(const QString& name)
 {
     Q_UNUSED(name);
-    qgcApp()->showAppMessage(tr("This Pattern does not support Presets."));
+    QGC::showAppMessage(tr("This Pattern does not support Presets."));
 }
 
 void ComplexMissionItem::deletePreset(const QString& name)
 {
-    if (qgcApp()->toolbox()->corePlugin()->options()->surveyBuiltInPresetNames().contains(name)) {
-        qgcApp()->showAppMessage(tr("'%1' is a built-in preset which cannot be deleted.").arg(name));
+    if (QGCCorePlugin::instance()->options()->surveyBuiltInPresetNames().contains(name)) {
+        QGC::showAppMessage(tr("'%1' is a built-in preset which cannot be deleted.").arg(name));
         return;
     }
 
@@ -86,7 +74,7 @@ void ComplexMissionItem::_savePresetJson(const QString& name, QJsonObject& prese
     // Use this to save a survey preset as a JSON file to be included in the build
     // as a built-in survey preset that cannot be deleted.
     #if 0
-    QString savePath = _settingsManager->appSettings()->missionSavePath();
+    QString savePath = SettingsManager::instance()->appSettings()->missionSavePath();
     QDir saveDir(savePath);
 
     QString fileName = saveDir.absoluteFilePath(name);
@@ -147,4 +135,3 @@ void ComplexMissionItem::_segmentTerrainCollisionChanged(bool terrainCollision)
     }
     emit terrainCollisionChanged(_cTerrainCollisionSegments != 0);
 }
-

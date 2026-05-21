@@ -1,82 +1,79 @@
-find_package(Qt6 REQUIRED COMPONENTS Core)
+# ============================================================================
+# GPS Module
+# GPS/GNSS positioning and RTK support
+# ============================================================================
 
-qt_add_library(GPS STATIC)
+# NTRIP + RTCMMavlink are network/MAVLink-only — build even when QGC_NO_SERIAL_LINK skips the rest.
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        RTCMMavlink.cc
+        RTCMMavlink.h
+)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_subdirectory(NTRIP)
+
+# Everything below uses QSerialPort or spawns a serial-attached GPS process.
 if(QGC_NO_SERIAL_LINK)
     return()
 endif()
 
-include(FetchContent)
-FetchContent_Declare(PX4-GPSDrivers
-    GIT_REPOSITORY https://github.com/PX4/PX4-GPSDrivers.git
-    GIT_TAG main
-    GIT_SHALLOW TRUE
-    SOURCE_SUBDIR src
-)
-FetchContent_MakeAvailable(PX4-GPSDrivers)
-
-qt_add_library(GPSDrivers STATIC
-    definitions.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/ashtech.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/ashtech.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/base_station.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/crc.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/crc.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/emlid_reach.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/emlid_reach.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/femtomes.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/femtomes.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/gps_helper.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/gps_helper.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/mtk.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/mtk.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/nmea.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/nmea.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/rtcm.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/rtcm.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/sbf.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/sbf.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/ubx.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/ubx.h
-    ${px4-gpsdrivers_SOURCE_DIR}/src/unicore.cpp
-    ${px4-gpsdrivers_SOURCE_DIR}/src/unicore.h
-)
-
-target_link_libraries(GPSDrivers
-    PUBLIC
-        Qt6::Core
-        Utilities
-)
-
-target_include_directories(GPSDrivers PUBLIC ${px4-gpsdrivers_SOURCE_DIR})
-
-target_compile_definitions(GPSDrivers PUBLIC GPS_DEFINITIONS_HEADER=<${CMAKE_CURRENT_SOURCE_DIR}/definitions.h>)
-
-target_sources(GPS
+target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
         GPSManager.cc
         GPSManager.h
-        GPSPositionMessage.h
         GPSProvider.cc
         GPSProvider.h
-        RTCMMavlink.cc
-        RTCMMavlink.h
+        GPSRtk.cc
+        GPSRtk.h
+        GPSRTKFactGroup.cc
+        GPSRTKFactGroup.h
         satellite_info.h
         sensor_gnss_relative.h
         sensor_gps.h
 )
 
-target_link_libraries(GPS
-    PRIVATE
-        Comms
-        GPSDrivers
-        Settings
-        Utilities
-        Vehicle
-    PUBLIC
-        Qt6::Core
-        MAVLink
-        QGC
+# ============================================================================
+# PX4 GPS Drivers Integration
+# ============================================================================
+
+CPMAddPackage(
+    NAME px4-gpsdrivers
+    GITHUB_REPOSITORY PX4/PX4-GPSDrivers
+    GIT_TAG caf5158061bd10e79c9f042abb62c86bc6f3e7a7
+    SOURCE_SUBDIR src
 )
 
-target_include_directories(GPS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# NOTE: Using file(GLOB) for external dependency sources
+# CONFIGURE_DEPENDS ensures CMake re-runs if files are added/removed
+file(GLOB GPS_DRIVERS_SOURCES
+    CONFIGURE_DEPENDS
+    "${px4-gpsdrivers_SOURCE_DIR}/src/*.c"
+    "${px4-gpsdrivers_SOURCE_DIR}/src/*.cpp"
+    "${px4-gpsdrivers_SOURCE_DIR}/src/*.h"
+)
+
+add_library(px4-gpsdrivers OBJECT ${GPS_DRIVERS_SOURCES})
+target_include_directories(px4-gpsdrivers SYSTEM PRIVATE ${px4-gpsdrivers_SOURCE_DIR}/src)
+target_compile_definitions(px4-gpsdrivers PRIVATE GPS_DEFINITIONS_HEADER=<${CMAKE_CURRENT_SOURCE_DIR}/definitions.h>)
+target_link_libraries(px4-gpsdrivers PRIVATE Qt6::Core)
+qgc_disable_dependency_warnings(px4-gpsdrivers)
+
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        definitions.h
+        $<TARGET_OBJECTS:px4-gpsdrivers>
+)
+
+# ----------------------------------------------------------------------------
+# GPS/RTK Configuration Resources
+# ----------------------------------------------------------------------------
+qt_add_resources(${CMAKE_PROJECT_NAME} json_gps_drivers
+    PREFIX "/json/Vehicle"
+    FILES GPSRTKFact.json
+)
+
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE GPS_DEFINITIONS_HEADER=<${CMAKE_CURRENT_SOURCE_DIR}/definitions.h>)
+
+target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE ${px4-gpsdrivers_SOURCE_DIR}/src)

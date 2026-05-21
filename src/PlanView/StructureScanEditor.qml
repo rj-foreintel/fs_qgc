@@ -1,15 +1,11 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
-import QtQuick.Extras
 import QtQuick.Layouts
 
 import QGroundControl
-import QGroundControl.ScreenTools
-import QGroundControl.Vehicle
 import QGroundControl.Controls
 import QGroundControl.FactControls
-import QGroundControl.Palette
 import QGroundControl.FlightMap
 
 // Editor for Survery mission items
@@ -20,9 +16,8 @@ Rectangle {
     color:      qgcPal.windowShadeDark
     radius:     _radius
 
-    // The following properties must be available up the hierarchy chain
-    //property real   availableWidth    ///< Width for control
-    //property var    missionItem       ///< Mission Item for editor
+    required property var missionItem
+    required property real availableWidth
 
     property real   _margin:                    ScreenTools.defaultFontPixelWidth / 2
     property real   _fieldWidth:                ScreenTools.defaultFontPixelWidth * 10.5
@@ -144,14 +139,14 @@ Rectangle {
                         QGCLabel { text: qsTr("Scan Bottom Alt") }
                         AltitudeFactTextField {
                             fact:               missionItem.scanBottomAlt
-                            altitudeMode:       QGroundControl.AltitudeModeRelative
+                            altitudeFrame:       QGroundControl.AltitudeFrameRelative
                             Layout.fillWidth:   true
                         }
 
                         QGCLabel { text: qsTr("Entrance/Exit Alt") }
                         AltitudeFactTextField {
                             fact:               missionItem.entranceAlt
-                            altitudeMode:       QGroundControl.AltitudeModeRelative
+                            altitudeFrame:       QGroundControl.AltitudeFrameRelative
                             Layout.fillWidth:   true
                         }
 

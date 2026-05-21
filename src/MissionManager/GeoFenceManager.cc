@@ -1,18 +1,9 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "GeoFenceManager.h"
 #include "Vehicle.h"
 #include "QmlObjectListModel.h"
 #include "QGCLoggingCategory.h"
 
-QGC_LOGGING_CATEGORY(GeoFenceManagerLog, "GeoFenceManagerLog")
+QGC_LOGGING_CATEGORY(GeoFenceManagerLog, "PlanManager.GeoFenceManager")
 
 GeoFenceManager::GeoFenceManager(Vehicle* vehicle)
     : PlanManager       (vehicle, MAV_MISSION_TYPE_FENCE)
@@ -152,11 +143,11 @@ void GeoFenceManager::_planManagerLoadComplete(bool removeAllRequested)
                 expectedCommand = command;
             } else if (expectedVertexCount != item->param1()){
                 // In the middle of a polygon, but count suddenly changed
-                emit error(BadPolygonItemFormat, tr("GeoFence load: Vertex count change mid-polygon - actual:expected").arg(item->param1()).arg(expectedVertexCount));
+                emit error(BadPolygonItemFormat, tr("GeoFence load: Vertex count change mid-polygon - actual:expected") + QString(" %1:%2").arg(item->param1()).arg(expectedVertexCount));
                 break;
-            } if (expectedCommand != command) {
+            } else if (expectedCommand != command) {
                 // Command changed before last polygon was completely loaded
-                emit error(BadPolygonItemFormat, tr("GeoFence load: Polygon type changed before last load complete - actual:expected").arg(command).arg(expectedCommand));
+                emit error(BadPolygonItemFormat, tr("GeoFence load: Polygon type changed before last load complete - actual:expected") + QString(" %1:%2").arg(command).arg(expectedCommand));
                 break;
             }
             nextPolygon.appendVertex(QGeoCoordinate(item->param5(), item->param6()));
@@ -193,5 +184,5 @@ void GeoFenceManager::_planManagerLoadComplete(bool removeAllRequested)
 
 bool GeoFenceManager::supported(void) const
 {
-    return (_vehicle->capabilityBits() & MAV_PROTOCOL_CAPABILITY_MISSION_FENCE) && (_vehicle->maxProtoVersion() >= 200);
+    return _vehicle->capabilityBits() & MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
 }

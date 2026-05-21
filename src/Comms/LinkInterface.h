@@ -1,50 +1,46 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
-#include <QtCore/QThread>
-#include <QtCore/QLoggingCategory>
+#include <QtQmlIntegration/QtQmlIntegration>
+
+#include <memory>
 
 #include "LinkConfiguration.h"
 
 class LinkManager;
+class SigningController;
 
-Q_DECLARE_LOGGING_CATEGORY(LinkInterfaceLog)
-
-/// The link interface defines the interface for all links used to communicate with the ground station application.
-class LinkInterface : public QThread
+/// \brief The link interface defines the interface for all links used to communicate with the ground station application.
+///
+class LinkInterface : public QObject
 {
     Q_OBJECT
-
+    QML_ELEMENT
+    QML_UNCREATABLE("")
     friend class LinkManager;
 
 public:
     virtual ~LinkInterface();
 
-    Q_INVOKABLE virtual void disconnect() = 0;
+    Q_INVOKABLE virtual void disconnect() = 0; // Implementations should guard against multiple calls
 
     virtual bool isConnected() const = 0;
-    virtual bool isLogReplay() { return false; }
-    virtual bool isSecureConnection() { return false; } ///< Returns true if the connection is secure (e.g. USB, wired ethernet)
+    virtual bool isLogReplay() const { return false; }
+    virtual bool isSecureConnection() const { return false; } ///< Returns true if the connection is secure (e.g. USB, wired ethernet)
 
     SharedLinkConfigurationPtr linkConfiguration() { return _config; }
     const SharedLinkConfigurationPtr linkConfiguration() const { return _config; }
     uint8_t mavlinkChannel() const;
     bool mavlinkChannelIsSet() const;
-    bool decodedFirstMavlinkPacket(void) const { return _decodedFirstMavlinkPacket; }
+    bool decodedFirstMavlinkPacket() const { return _decodedFirstMavlinkPacket; }
     void setDecodedFirstMavlinkPacket(bool decodedFirstMavlinkPacket) { _decodedFirstMavlinkPacket = decodedFirstMavlinkPacket; }
     void writeBytesThreadSafe(const char *bytes, int length);
     void addVehicleReference() { ++_vehicleReferenceCount; }
     void removeVehicleReference();
-    bool initMavlinkSigning();
-    void setSigningSignatureFailure(bool failure);
+    void reportMavlinkV1Traffic();
+
+    /// Per-link signing state and confirmation state machine. Non-null after channel allocation.
+    SigningController* signing() { return _signingController.get(); }
+    const SigningController* signing() const { return _signingController.get(); }
 
 signals:
     void bytesReceived(LinkInterface *link, const QByteArray &data);
@@ -55,7 +51,7 @@ signals:
 
 protected:
     /// Links are only created by LinkManager so constructor is not public
-    LinkInterface(SharedLinkConfigurationPtr &config, QObject *parent = nullptr);
+    explicit LinkInterface(SharedLinkConfigurationPtr &config, QObject *parent = nullptr);
 
     /// Called by the LinkManager during LinkInterface construction instructing the link to setup channels.
     /// Default implementation allocates a single channel. But some link types (such as MockLink) need more than one.
@@ -78,7 +74,10 @@ private:
     uint8_t _mavlinkChannel = std::numeric_limits<uint8_t>::max();
     bool _decodedFirstMavlinkPacket = false;
     int _vehicleReferenceCount = 0;
-    bool _signingSignatureFailure = false;
+    bool _mavlinkV1TrafficReported = false;
+    /// Must `reset()` in `_freeMavlinkChannel` before LinkManager frees the channel so the
+    /// controller can flush the final timestamp.
+    std::unique_ptr<SigningController> _signingController;
 };
 
 typedef std::shared_ptr<LinkInterface> SharedLinkInterfacePtr;

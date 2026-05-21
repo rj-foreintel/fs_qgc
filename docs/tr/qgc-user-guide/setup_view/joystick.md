@@ -18,7 +18,7 @@ Belirli bir kontrolcüyle uyumluluk, SDL'ye bağlıdır (bu API tarafından gös
 
 ## PX4 Joystick Desteğini Etkinleştirme
 
-To enable Joystick support in PX4 you need to set the parameter [`COM_RC_IN_MODE`](h[ttp://localhost:8080/px4_user_guide/en](https://docs.px4.io/en/main/advanced_config/parameter_reference.html#COM_RC_IN_MODE) to `1` - _Joystick_.
+To enable Joystick support in PX4 you need to set the parameter [`COM_RC_IN_MODE`](https://docs.px4.io/en/main/advanced_config/parameter_reference.html#COM_RC_IN_MODE) to `1` - _Joystick_.
 If this parameter is `0` then _Joystick_ will not be offered as a setup option.
 
 Bu, PX4 SITL yapıları için varsayılan olarak etkindir (belirli bir parametrenin nasıl bulunacağı ve ayarlanacağı hakkında bilgi için [Parametreler](../setup_view/parameters.md) konusuna bakın).
@@ -47,6 +47,10 @@ Joystick'i ayarlamak için:
    ![Joystick Kurulumu - Kalibrasyon](../../../assets/setup/joystick_calibration.jpg)
 
    Joystick, kalibrasyon işleminin son adımı olarak _ etkinleştirilir _.
+
+   ::: warning
+   On some controllers the calibration process does not work because of incorrect channel mappings. You can follow [supported joysticks section](#supported-joysticks) for more information.
+   :::
 
 6. Düğmelerin ve çubukların amaçlandığı gibi çalışıp çalışmadığını onlara basarak ve sonucu \*\* General \*\* sekmesindeki Axis/Buton monitöründe görüntüleyerek test edin.
 
@@ -172,6 +176,23 @@ Taranis, düğme seçeneklerini kullanmanıza izin vermez (kesin olmak gerekirse
 The Taranis is an open system that is openly being worked on.
 Yazma sırasında, bir joystick olarak etkili bir şekilde çalışmasına izin veren bir aygıt yazılımı veya konfigürasyon olması mümkündür.
 :::
+
+### TBS Tango 2
+
+The TBS Tango 2 can also be used as a joystick controlled via QGroundControl. In order to make it work, you need to remap the channels by using the following commands:
+
+```bash
+export SDL_GAMECONTROLLERCONFIG="03002de7d80400001057000011010000,Team-BlackSheep TBS Joystick,a:b0,b:b1,x:b3,y:b4,back:b10,guide:b12,start:b11,leftstick:b13,rightstick:b14,leftshoulder:b6,rightshoulder:b7,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,crc:e72d,platform:Linux"
+./QGroundControl-x86_64.AppImage
+```
+
+For another radio, the first command above can be found by using the [jstest software tool](http://github.com/meleu/jstest-sdl) and run:
+
+```bash
+jstest-sdl -l
+```
+
+**Take care of the channels remapping you need to do between a2, a3 and other if needed**
 
 ### Logitech Gamepad F310
 

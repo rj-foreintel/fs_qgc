@@ -1,26 +1,13 @@
-/****************************************************************************
- *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 import QtQuick
 import QtQuick.Controls
 import QtLocation
 import QtPositioning
 import QtQuick.Dialogs
+import Qt.labs.animation
 
 import QGroundControl
-import QGroundControl.FactSystem
 import QGroundControl.Controls
 import QGroundControl.FlightMap
-import QGroundControl.ScreenTools
-import QGroundControl.MultiVehicleManager
-import QGroundControl.Vehicle
-import QGroundControl.QGCPositionManager
 
 Map {
     id: _map
@@ -38,8 +25,6 @@ Map {
     property bool   firstVehiclePositionReceived:   false   ///< true: first vehicle position update was responded to
     property bool   planView:                       false   ///< true: map being using for Plan view, items should be draggable
 
-    readonly property real  maxZoomLevel: 20
-
     property var    _activeVehicle:             QGroundControl.multiVehicleManager.activeVehicle
     property var    _activeVehicleCoordinate:   _activeVehicle ? _activeVehicle.coordinate : QtPositioning.coordinate()
 
@@ -48,8 +33,12 @@ Map {
         // This works around a bug on Qt where if you set a visibleRegion and then the user moves or zooms the map
         // and then you set the same visibleRegion the map will not move/scale appropriately since it thinks there
         // is nothing to do.
+        let maxZoomLevel = 20
         _map.visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(0, 0), QtPositioning.coordinate(0, 0))
         _map.visibleRegion = region
+        if (_map.zoomLevel > maxZoomLevel) {
+            _map.zoomLevel = maxZoomLevel
+        }
     }
 
     function _possiblyCenterToVehiclePosition() {
@@ -61,7 +50,13 @@ Map {
     }
 
     function centerToSpecifiedLocation() {
-        specifyMapPositionDialog.createObject(mainWindow).open()
+        specifyMapPositionDialogFactory.open()
+    }
+
+    QGCPopupDialogFactory {
+        id: specifyMapPositionDialogFactory
+
+        dialogComponent: specifyMapPositionDialog
     }
 
     Component {
@@ -118,22 +113,24 @@ Map {
     signal mapPanStart
     signal mapPanStop
     signal mapClicked(var position)
-    
+    signal mapRightClicked(var position)
+    signal mapPressAndHold(var position)
+
     PinchHandler {
-        id:                 pinch
-        target:             null
-        grabPermissions:    PointerHandler.TakeOverForbidden
+        id:     pinchHandler
+        target: null
 
         property var pinchStartCentroid
 
         onActiveChanged: {
             if (active) {
-                pinchStartCentroid = _map.toCoordinate(pinch.centroid.position, false)
+                pinchStartCentroid = _map.toCoordinate(pinchHandler.centroid.position, false)
             }
         }
         onScaleChanged: (delta) => {
-            _map.zoomLevel += Math.log2(delta)
-            _map.alignCoordinateToPoint(pinchStartCentroid, pinch.centroid.position)
+            let newZoomLevel = Math.max(_map.zoomLevel + Math.log2(delta), 0)
+            _map.zoomLevel = newZoomLevel
+            _map.alignCoordinateToPoint(pinchStartCentroid, pinchHandler.centroid.position)
         }
     }
 
@@ -144,38 +141,105 @@ Map {
         acceptedDevices:    Qt.platform.pluginName === "cocoa" || Qt.platform.pluginName === "wayland" ?
                                 PointerDevice.Mouse | PointerDevice.TouchPad : PointerDevice.Mouse
         rotationScale:      1 / 120
-        property:           "zoomLevel"
+
+        onWheel: (event) => {
+            const zoomDelta = event.angleDelta.y * rotationScale
+            const mouseGeoPos = _map.toCoordinate(Qt.point(event.x, event.y), false)
+            _map.zoomLevel = Math.max(_map.zoomLevel + zoomDelta, 0)
+            _map.alignCoordinateToPoint(mouseGeoPos, Qt.point(event.x, event.y))
+        }
     }
 
-    DragHandler {
-        target: null
-        grabPermissions: PointerHandler.TakeOverForbidden
+    // We specifically do not use a DragHandler for panning. It just causes too many problems if you overlay anything else like a Flickable above it.
+    // Causes all sorts of crazy problems where dragging/scrolling  no longerr works on items above in the hierarchy.
+    // Since we are using a MouseArea we also can't use TapHandler for clicks. So we handle that here as well.
+    MultiPointTouchArea {
+        id: multiTouchArea
+        anchors.fill: parent
+        maximumTouchPoints: 1
+        mouseEnabled: true
 
-        onActiveChanged: {
-            if (active) {
-                mapPanStart()
-            } else {
-                mapPanStop()
+        property bool dragActive: false
+        property real lastMouseX
+        property real lastMouseY
+        property bool isPressed: false
+        property bool pressAndHold: false
+
+        onPressed: (touchPoints) => {
+            lastMouseX = touchPoints[0].x
+            lastMouseY = touchPoints[0].y
+            isPressed = true
+            pressAndHold = false
+            pressAndHoldTimer.start()
+        }
+
+        onGestureStarted: (gesture) => {
+            dragActive = true
+            gesture.grab()
+            mapPanStart()
+        }
+
+        onUpdated: (touchPoints) => {
+            if (dragActive) {
+                let deltaX = touchPoints[0].x - lastMouseX
+                let deltaY = touchPoints[0].y - lastMouseY
+                if (Math.abs(deltaX) >= 1.0 || Math.abs(deltaY) >= 1.0) {
+                    _map.pan(lastMouseX - touchPoints[0].x, lastMouseY - touchPoints[0].y)
+                    lastMouseX = touchPoints[0].x
+                    lastMouseY = touchPoints[0].y
+                }
             }
         }
 
-        onActiveTranslationChanged: (delta) => _map.pan(-delta.x, -delta.y)
+        onReleased: (touchPoints) => {
+            isPressed = false
+            pressAndHoldTimer.stop()
+            if (dragActive) {
+                _map.pan(lastMouseX - touchPoints[0].x, lastMouseY - touchPoints[0].y)
+                dragActive = false
+                mapPanStop()
+            } else if (!pressAndHold) {
+                mapClicked(Qt.point(touchPoints[0].x, touchPoints[0].y))
+            }
+            pressAndHold = false
+        }
+
+        Timer {
+            id: pressAndHoldTimer
+            interval: 600        // hold duration in ms
+            repeat: false
+
+            onTriggered: {
+                if (multiTouchArea.isPressed && !multiTouchArea.dragActive) {
+                    multiTouchArea.pressAndHold = true
+                    mapPressAndHold(Qt.point(multiTouchArea.lastMouseX, multiTouchArea.lastMouseY))
+                }
+            }
+        }
     }
 
-    TapHandler {
-        onTapped: (eventPoint) => mapClicked(eventPoint.position)
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        propagateComposedEvents: true
+
+        onPressed: (mouseEvent) => {
+            if (mouseEvent.button === Qt.RightButton) {
+                mapRightClicked(Qt.point(mouseEvent.x, mouseEvent.y))
+            }
+        }
     }
-    
+
     /// Ground Station location
     MapQuickItem {
         anchorPoint.x:  sourceItem.width / 2
         anchorPoint.y:  sourceItem.height / 2
-        visible:        gcsPosition.isValid
+        visible:        gcsPosition.isValid && !planView
         coordinate:     gcsPosition
 
         sourceItem: Image {
             id:             mapItemImage
-            source:         isNaN(gcsHeading) ? "/res/QGCLogoFull" : "/res/QGCLogoArrow"
+            source:         isNaN(gcsHeading) ? "/res/QGCLogoFull.svg" : "/res/QGCLogoArrow.svg"
             mipmap:         true
             antialiasing:   true
             fillMode:       Image.PreserveAspectFit

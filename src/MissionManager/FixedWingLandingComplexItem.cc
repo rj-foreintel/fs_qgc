@@ -1,14 +1,5 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "FixedWingLandingComplexItem.h"
-#include "JsonHelper.h"
+#include "JsonParsing.h"
 #include "MissionController.h"
 #include "MissionItem.h"
 #include "PlanMasterController.h"
@@ -17,15 +8,15 @@
 
 #include <QtCore/QJsonArray>
 
-QGC_LOGGING_CATEGORY(FixedWingLandingComplexItemLog, "FixedWingLandingComplexItemLog")
-
-const QString FixedWingLandingComplexItem::name(FixedWingLandingComplexItem::tr("Fixed Wing Landing"));
+QGC_LOGGING_CATEGORY(FixedWingLandingComplexItemLog, "Plan.FixedWingLandingComplexItem")
 
 FixedWingLandingComplexItem::FixedWingLandingComplexItem(PlanMasterController* masterController, bool flyView)
     : LandingComplexItem        (masterController, flyView)
     , _metaDataMap              (FactMetaData::createMapFromJsonFile(QStringLiteral(":/json/FWLandingPattern.FactMetaData.json"), this))
     , _landingDistanceFact      (settingsGroup, _metaDataMap[finalApproachToLandDistanceName])
     , _finalApproachAltitudeFact(settingsGroup, _metaDataMap[finalApproachAltitudeName])
+    , _useDoChangeSpeedFact     (settingsGroup, _metaDataMap[useDoChangeSpeedName])
+    , _finalApproachSpeedFact   (settingsGroup, _metaDataMap[finalApproachSpeedName])
     , _loiterRadiusFact         (settingsGroup, _metaDataMap[loiterRadiusName])
     , _loiterClockwiseFact      (settingsGroup, _metaDataMap[loiterClockwiseName])
     , _landingHeadingFact       (settingsGroup, _metaDataMap[landingHeadingName])
@@ -36,7 +27,7 @@ FixedWingLandingComplexItem::FixedWingLandingComplexItem(PlanMasterController* m
     , _stopTakingVideoFact      (settingsGroup, _metaDataMap[stopTakingVideoName])
     , _valueSetIsDistanceFact   (settingsGroup, _metaDataMap[valueSetIsDistanceName])
 {
-    _editorQml      = "qrc:/qml/FWLandingPatternEditor.qml";
+    _editorQml      = "qrc:/qml/QGroundControl/PlanView/FWLandingPatternEditor.qml";
     _isIncomplete   = false;
 
     _init();
@@ -52,11 +43,19 @@ FixedWingLandingComplexItem::FixedWingLandingComplexItem(PlanMasterController* m
     setDirty(false);
 }
 
+QString FixedWingLandingComplexItem::patternName() const {
+    if (_masterController->missionController()->isFirstLandingComplexItem(this)) {
+        return tr(canonicalName);
+    } else {
+        return tr("Alternate Landing");
+    }
+}
+
 void FixedWingLandingComplexItem::save(QJsonArray&  missionItems)
 {
     QJsonObject saveObject = _save();
 
-    saveObject[JsonHelper::jsonVersionKey]                  = 2;
+    saveObject[JsonParsing::jsonVersionKey]                  = 2;
     saveObject[VisualMissionItem::jsonTypeKey]              = VisualMissionItem::jsonTypeComplexItemValue;
     saveObject[ComplexMissionItem::jsonComplexItemTypeKey]  = jsonComplexItemTypeValue;
     saveObject[_jsonValueSetIsDistanceKey]                  = _valueSetIsDistanceFact.rawValue().toBool();
@@ -66,21 +65,21 @@ void FixedWingLandingComplexItem::save(QJsonArray&  missionItems)
 
 bool FixedWingLandingComplexItem::load(const QJsonObject& complexObject, int sequenceNumber, QString& errorString)
 {
-    QList<JsonHelper::KeyValidateInfo> keyInfoList = {
-        { JsonHelper::jsonVersionKey, QJsonValue::Double, true },
+    QList<JsonParsing::KeyValidateInfo> keyInfoList = {
+        { JsonParsing::jsonVersionKey, QJsonValue::Double, true },
     };
-    if (!JsonHelper::validateKeys(complexObject, keyInfoList, errorString)) {
+    if (!JsonParsing::validateKeys(complexObject, keyInfoList, errorString)) {
         return false;
     }
 
-    int version = complexObject[JsonHelper::jsonVersionKey].toInt();
+    int version = complexObject[JsonParsing::jsonVersionKey].toInt();
     if (version == 1) {
         _valueSetIsDistanceFact.setRawValue(true);
     } else if (version == 2) {
-        QList<JsonHelper::KeyValidateInfo> v2KeyInfoList = {
+        QList<JsonParsing::KeyValidateInfo> v2KeyInfoList = {
             { _jsonValueSetIsDistanceKey,   QJsonValue::Bool,  true },
         };
-        if (!JsonHelper::validateKeys(complexObject, v2KeyInfoList, errorString)) {
+        if (!JsonParsing::validateKeys(complexObject, v2KeyInfoList, errorString)) {
             _ignoreRecalcSignals = false;
             return false;
         }
@@ -125,30 +124,21 @@ void FixedWingLandingComplexItem::_calcGlideSlope(void)
     _glideSlopeFact.setRawValue(qRadiansToDegrees(qAtan(landingAltDifference / landingDistance)));
 }
 
-void FixedWingLandingComplexItem::moveLandingPosition(const QGeoCoordinate& coordinate)
-{
-    double savedHeading = landingHeading()->rawValue().toDouble();
-    double savedDistance = landingDistance()->rawValue().toDouble();
-
-    setLandingCoordinate(coordinate);
-    landingHeading()->setRawValue(savedHeading);
-    landingDistance()->setRawValue(savedDistance);
-}
-
 bool FixedWingLandingComplexItem::_isValidLandItem(const MissionItem& missionItem)
 {
     if (missionItem.command() != MAV_CMD_NAV_LAND ||
             !(missionItem.frame() == MAV_FRAME_GLOBAL_RELATIVE_ALT || missionItem.frame() == MAV_FRAME_GLOBAL) ||
-            missionItem.param1() != 0 || missionItem.param2() != 0 || missionItem.param3() != 0 || missionItem.param4() != 0) {
+            // ArduPilot automatically sets param4 to 1, so we have to allow for it.
+            missionItem.param1() != 0 || missionItem.param2() != 0 || missionItem.param3() != 0 || (missionItem.param4() != 0 && missionItem.param4() != 1)) {
         return false;
     } else {
         return true;
     }
 }
 
-bool FixedWingLandingComplexItem::scanForItem(QmlObjectListModel* visualItems, bool flyView, PlanMasterController* masterController)
+bool FixedWingLandingComplexItem::scanForItems(QmlObjectListModel* visualItems, bool flyView, PlanMasterController* masterController)
 {
-    return _scanForItem(visualItems, flyView, masterController, _isValidLandItem, _createItem);
+    return _scanForItems(visualItems, flyView, masterController, _isValidLandItem, _createItem);
 }
 
 // Never call this method directly. If you want to update the flight segments you emit _updateFlightPathSegmentsSignal()
@@ -159,15 +149,15 @@ void FixedWingLandingComplexItem::_updateFlightPathSegmentsDontCallDirectly(void
         emit terrainCollisionChanged(false);
     }
 
-    _flightPathSegments.beginReset();
+    _flightPathSegments.beginResetModel();
     _flightPathSegments.clearAndDeleteContents();
     if (useLoiterToAlt()->rawValue().toBool()) {
-        _appendFlightPathSegment(FlightPathSegment::SegmentTypeGeneric, finalApproachCoordinate(), amslEntryAlt(), loiterTangentCoordinate(),  amslEntryAlt()); // Best we can do to simulate loiter circle terrain profile
-        _appendFlightPathSegment(FlightPathSegment::SegmentTypeLand, loiterTangentCoordinate(), amslEntryAlt(), landingCoordinate(),        amslExitAlt());
+        _appendFlightPathSegment(FlightPathSegment::SegmentTypeGeneric, finalApproachCoordinate(), amslEntryAlt(), slopeStartCoordinate(),  amslEntryAlt()); // Best we can do to simulate loiter circle terrain profile
+        _appendFlightPathSegment(FlightPathSegment::SegmentTypeLand, slopeStartCoordinate(), amslEntryAlt(), landingCoordinate(),        amslExitAlt());
     } else {
         _appendFlightPathSegment(FlightPathSegment::SegmentTypeLand, finalApproachCoordinate(), amslEntryAlt(), landingCoordinate(),        amslExitAlt());
     }
-    _flightPathSegments.endReset();
+    _flightPathSegments.endResetModel();
 
     if (_cTerrainCollisionSegments != 0) {
         emit terrainCollisionChanged(true);

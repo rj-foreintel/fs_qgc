@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import QGroundControl.Palette
-import QGroundControl.ScreenTools
+import QGroundControl
+import QGroundControl.Controls
 
 TextField {
     id:                 control
@@ -21,6 +21,7 @@ TextField {
     rightPadding:       _marginPadding + unitsHelpLayout.width
     topPadding:         _marginPadding
     bottomPadding:      _marginPadding
+    EnterKey.type:      Qt.EnterKeyDone
 
     property bool   showUnits:          false
     property bool   showHelp:           false
@@ -53,32 +54,38 @@ TextField {
             if (validationError) {
                 validationToolTip.visible = true
             }
+        } else {
+            validationToolTip.visible = false
         }
     }
 
-    function showValidationError(errorString, originalValidValue = undefined) {
+    function showValidationError(errorString, originalValidValue = undefined, preventViewSiwtch = true) {
         validationToolTip.text = errorString
         validationToolTip.originalValidValue = originalValidValue
         validationToolTip.visible = true
         if (!validationError) {
             validationError = true
-            globals.validationErrorCount++
+            if (preventViewSiwtch) {
+                globals.validationErrorCount++
+            }
         }
     }
 
-    function clearValidationError() {
+    function clearValidationError(preventViewSiwtch = true) {
         validationToolTip.visible = false
         validationToolTip.originalValidValue = undefined
         if (validationError) {
             validationError = false
-            globals.validationErrorCount--
+            if (preventViewSiwtch) {
+                globals.validationErrorCount--
+            }
         }
     }
 
     background: Rectangle {
         border.width:   control.validationError ? 2 : (qgcPal.globalTheme === QGCPalette.Light ? 1 : 0)
         border.color:   control.validationError ? qgcPal.colorRed : qgcPal.buttonBorder
-        radius:         ScreenTools.buttonBorderRadius
+        radius:         ScreenTools.defaultBorderRadius
         color:          qgcPal.textField
         implicitWidth:  ScreenTools.implicitTextFieldWidth
         implicitHeight: ScreenTools.implicitTextFieldHeight

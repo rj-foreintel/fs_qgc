@@ -1,24 +1,16 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Qml Test)
+# ============================================================================
+# Communications Unit Tests
+# Tests for serial port detection and communication links
+# ============================================================================
 
-qt_add_library(CommsTest STATIC
-    QGCSerialPortInfoTest.cc
-    QGCSerialPortInfoTest.h
-)
-
-target_link_libraries(CommsTest
+target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
-        Qt6::Test
-        Comms
-    PUBLIC
-        qgcunittest
+        LinkConfigurationTest.cc
+        LinkConfigurationTest.h
+        QGCSerialPortInfoTest.cc
+        QGCSerialPortInfoTest.h
 )
 
-target_include_directories(CommsTest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-qt_add_qml_module(CommsTest
-    URI commstest
-    VERSION 1.0
-    QML_FILES
-        MockLinkOptionsDlg.qml
-    IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
-)
+add_subdirectory(Bluetooth)

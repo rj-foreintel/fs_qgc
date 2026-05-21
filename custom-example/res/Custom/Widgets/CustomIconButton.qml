@@ -1,21 +1,8 @@
-/****************************************************************************
- *
- * (c) 2009-2019 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- * @file
- *   @author Gus Grubba <gus@auterion.com>
- */
-
 import QtQuick
 import QtQuick.Controls
 
 import QGroundControl
 import QGroundControl.Controls
-import QGroundControl.Palette
-import QGroundControl.ScreenTools
 
 Button {
     id:                             _rootButton
@@ -49,7 +36,7 @@ Button {
             mipmap:                 true
             antialiasing:           true
             fillMode:               Image.PreserveAspectFit
-            source:                 qgcPal.globalTheme === QGCPalette.Light ? "/res/QGCLogoBlack" : "/res/QGCLogoWhite"
+            source:                 qgcPal.globalTheme === QGCPalette.Light ? "/res/QGCLogoBlack.svg" : "/res/QGCLogoWhite.svg"
             sourceSize.height:      height
             anchors.left:           _edge.right
             anchors.leftMargin:     ScreenTools.defaultFontPixelWidth

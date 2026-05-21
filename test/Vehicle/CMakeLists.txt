@@ -1,11 +1,22 @@
-add_subdirectory(Components)
+# ============================================================================
+# Vehicle Unit Tests
+# Tests for vehicle connection, FTP, MAVLink commands, and link management
+# ============================================================================
 
-find_package(Qt6 REQUIRED COMPONENTS Core Test)
-
-qt_add_library(VehicleTest
-    STATIC
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
         FTPManagerTest.cc
         FTPManagerTest.h
+        FTPControllerTest.cc
+        FTPControllerTest.h
+        FirmwareUpgradeControllerTest.cc
+        FirmwareUpgradeControllerTest.h
+        InitialConnectTest.cc
+        InitialConnectTest.h
+        InitialConnectPeripheralStartupTest.cc
+        InitialConnectPeripheralStartupTest.h
+        MAVLinkLogManagerTest.cc
+        MAVLinkLogManagerTest.h
         RequestMessageTest.cc
         RequestMessageTest.h
         SendMavCommandWithHandlerTest.cc
@@ -16,16 +27,17 @@ qt_add_library(VehicleTest
         VehicleLinkManagerTest.h
 )
 
-target_link_libraries(VehicleTest
-    PRIVATE
-        Qt6::Test
-        QGC
-    PUBLIC
-        Comms
-        qgcunittest
-        Vehicle
-    INTERFACE
-        VehicleComponentsTest
-)
+if(NOT QGC_DISABLE_APM_PLUGIN)
+    target_sources(${CMAKE_PROJECT_NAME}
+        PRIVATE
+            APMAirframeComponentControllerTest.cc
+            APMAirframeComponentControllerTest.h
+    )
+endif()
 
-target_include_directories(VehicleTest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# ----------------------------------------------------------------------------
+# Component Information Tests
+# ----------------------------------------------------------------------------
+add_subdirectory(ComponentInformation)

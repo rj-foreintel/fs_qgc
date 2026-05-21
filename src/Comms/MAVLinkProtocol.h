@@ -1,168 +1,101 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
-#include "LinkInterface.h"
-#include "QGCMAVLink.h"
-#include "QGCTemporaryFile.h"
-#include "QGCToolbox.h"
-
-#include <QtCore/QString>
 #include <QtCore/QByteArray>
-#include <QtCore/QLoggingCategory>
+#include <QtCore/QObject>
+#include <QtCore/QPair>
+#include <QtCore/QSet>
+#include <QtCore/QString>
 
-class LinkManager;
-class MultiVehicleManager;
-class QGCApplication;
+#include "LinkInterface.h"
+#include "MAVLinkEnums.h"
+#include "MAVLinkMessageType.h"
 
-Q_DECLARE_LOGGING_CATEGORY(MAVLinkProtocolLog)
+class QFile;
 
-/**
- * @brief MAVLink micro air vehicle protocol reference implementation.
- *
- * MAVLink is a generic communication protocol for micro air vehicles.
- * for more information, please see the official website: https://mavlink.io
- **/
-class MAVLinkProtocol : public QGCTool
+/// \brief MAVLink micro air vehicle protocol reference implementation.
+///
+class MAVLinkProtocol : public QObject
 {
     Q_OBJECT
 
 public:
-    MAVLinkProtocol(QGCApplication* app, QGCToolbox* toolbox);
+    explicit MAVLinkProtocol(QObject* parent = nullptr);
+
     ~MAVLinkProtocol();
 
-    /** @brief Get the human-friendly name of this protocol */
-    QString getName();
-    /** @brief Get the system id of this application */
+    static MAVLinkProtocol* instance();
+
+    void init();
+
+    static QString getName() { return QStringLiteral("MAVLink protocol"); }
+
     int getSystemId() const;
-    /** @brief Get the component id of this application */
-    int getComponentId() const;
 
-    /** @brief Get protocol version check state */
-    bool versionCheckEnabled() const {
-        return _enable_version_check;
-    }
-    /** @brief Get the protocol version */
-    int getVersion() {
-        return MAVLINK_VERSION;
-    }
-    /** @brief Get the currently configured protocol version */
-    unsigned getCurrentVersion() const{
-        return _current_version;
-    }
-    /**
-     * Reset the counters for all metadata for this link.
-     */
-    virtual void resetMetadataForLink(LinkInterface *link);
+    static int getComponentId() { return MAV_COMP_ID_MISSIONPLANNER; }
 
-    /// Suspend/Restart logging during replay.
-    void suspendLogForReplay(bool suspend);
+    void resetMetadataForLink(LinkInterface* link);
 
-    /// Set protocol version
-    void setVersion(unsigned version);
+    /// Reset sequence tracking so signing transitions don't inflate loss counters.
+    void resetSequenceTracking(LinkInterface* link);
 
-    // Override from QGCTool
-    virtual void setToolbox(QGCToolbox *toolbox);
+    void suspendLogForReplay(bool suspend) { _logSuspendReplay = suspend; }
 
-public slots:
-    /** @brief Receive bytes from a communication interface */
-    void receiveBytes(LinkInterface* link, QByteArray b);
-
-    /** @brief Log bytes sent from a communication interface */
-    void logSentBytes(LinkInterface* link, QByteArray b);
-
-    /** @brief Set the system id of this application */
-    void setSystemId(int id);
-
-    /** @brief Enable / disable version check */
-    void enableVersionCheck(bool enabled);
-
-    /** @brief Load protocol settings */
-    void loadSettings();
-    /** @brief Store protocol settings */
-    void storeSettings();
-
-    /// @brief Deletes any log files which are in the temp directory
-    static void deleteTempLogFiles(void);
-
-    /// Checks for lost log files
-    void checkForLostLogFiles(void);
-
-protected:
-    bool        _enable_version_check;                         ///< Enable checking of version match of MAV and QGC
-    uint8_t     lastIndex[256][256];                            ///< Store the last received sequence ID for each system/componenet pair
-    uint8_t     firstMessage[256][256];                         ///< First message flag
-    uint64_t    totalReceiveCounter[MAVLINK_COMM_NUM_BUFFERS];  ///< The total number of successfully received messages
-    uint64_t    totalLossCounter[MAVLINK_COMM_NUM_BUFFERS];     ///< Total messages lost during transmission.
-    float       runningLossPercent[MAVLINK_COMM_NUM_BUFFERS];   ///< Loss rate
-
-    mavlink_message_t _message;
-    mavlink_status_t _status;
-
-    bool        versionMismatchIgnore;
-    int         systemId;
-    unsigned    _current_version;
-    int         _radio_version_mismatch_count;
+    void checkForLostLogFiles();
 
 signals:
-    /// Heartbeat received on link
-    void vehicleHeartbeatInfo(LinkInterface* link, int vehicleId, int componentId, int vehicleFirmwareType, int vehicleType);
+    void vehicleHeartbeatInfo(LinkInterface* link, int vehicleId, int componentId, int vehicleFirmwareType,
+                              int vehicleType);
 
-    /** @brief Message received and directly copied via signal */
-    void messageReceived(LinkInterface* link, mavlink_message_t message);
-    /** @brief Emitted if version check is enabled / disabled */
-    void versionCheckChanged(bool enabled);
-    /** @brief Emitted if a message from the protocol should reach the user */
-    void protocolStatusMessage(const QString& title, const QString& message);
-    /** @brief Emitted if a new system ID was set */
-    void systemIdChanged(int systemId);
+    void messageReceived(LinkInterface* link, const mavlink_message_t& message);
 
-    void mavlinkMessageStatus(int uasId, uint64_t totalSent, uint64_t totalReceived, uint64_t totalLoss, float lossPercent);
+    void mavlinkMessageStatus(int sysid, uint64_t totalSent, uint64_t totalReceived, uint64_t totalLoss,
+                              float lossPercent);
 
-    /**
-     * @brief Emitted if a new radio status packet received
-     *
-     * @param rxerrors receive errors
-     * @param fixed count of error corrected packets
-     * @param rssi local signal strength in dBm
-     * @param remrssi remote signal strength in dBm
-     * @param txbuf how full the tx buffer is as a percentage
-     * @param noise background noise level
-     * @param remnoise remote background noise level
-     */
-    void radioStatusChanged(LinkInterface* link, unsigned rxerrors, unsigned fixed, int rssi, int remrssi,
-    unsigned txbuf, unsigned noise, unsigned remnoise);
+public slots:
+    void receiveBytes(LinkInterface* link, const QByteArray& data);
 
-    /// Emitted when a temporary telemetry log file is ready for saving
-    void saveTelemetryLog(QString tempLogfile);
+    void logSentBytes(const LinkInterface* link, const QByteArray& data);
 
-    /// Emitted when a telemetry log is started to save.
-    void checkTelemetrySavePath(void);
+    static void deleteTempLogFiles();
 
 private slots:
-    void _vehicleCountChanged(void);
+    void _vehicleCountChanged();
 
 private:
-    bool _closeLogFile(void);
-    void _startLogging(void);
-    void _stopLogging(void);
+    void _logData(LinkInterface* link, const mavlink_message_t& message);
+    bool _closeLogFile();
+    void _startLogging();
+    void _stopLogging();
 
-    bool _logSuspendError;      ///< true: Logging suspended due to error
-    bool _logSuspendReplay;     ///< true: Logging suspended due to replay
-    bool _vehicleWasArmed;      ///< true: Vehicle was armed during log sequence
+    void _forward(const mavlink_message_t& message);
+    void _forwardSupport(const mavlink_message_t& message);
 
-    QGCTemporaryFile    _tempLogFile;            ///< File to log to
-    static constexpr const char* _tempLogFileTemplate   = "FlightDataXXXXXX";   ///< Template for temporary log file
-    static constexpr const char* _logFileExtension      = "mavlink";            ///< Extension for log files
+    void _updateCounters(uint8_t mavlinkChannel, const mavlink_message_t& message);
+    bool _updateStatus(LinkInterface* link, const SharedLinkInterfacePtr linkPtr, uint8_t mavlinkChannel,
+                       const mavlink_message_t& message);
 
-    LinkManager*            _linkMgr;
-    MultiVehicleManager*    _multiVehicleManager;
+    void _saveTelemetryLog(const QString& tempLogfile);
+    bool _checkTelemetrySavePath();
+
+    QFile* _tempLogFile = nullptr;
+
+    bool _logSuspendError = false;
+    bool _logSuspendReplay = false;
+    bool _vehicleWasArmed = false;
+
+    /// Per-(channel, sysid, compid) last sequence ID. Channel-scoped so traffic on link A doesn't perturb expected
+    /// sequence on link B (which has independent sequence histories from the same vehicle).
+    uint8_t _lastIndex[MAVLINK_COMM_NUM_BUFFERS][256][256]{};
+
+    QSet<QPair<uint8_t, uint8_t>> _firstMessageSeen[MAVLINK_COMM_NUM_BUFFERS];
+    uint64_t _totalReceiveCounter[MAVLINK_COMM_NUM_BUFFERS]{};
+    uint64_t _totalLossCounter[MAVLINK_COMM_NUM_BUFFERS]{};
+    float _runningLossPercent[MAVLINK_COMM_NUM_BUFFERS]{};
+
+    bool _initialized = false;
+
+    static constexpr const char* _tempLogFileTemplate = "FlightDataXXXXXX";
+    static constexpr const char* _logFileExtension = "mavlink";
+
+    static constexpr uint8_t kMaxCompId = MAV_COMPONENT_ENUM_END - 1;
 };
-

@@ -1,22 +1,14 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "MissionManager.h"
 #include "Vehicle.h"
+#include "VehicleLinkManager.h"
 #include "FirmwarePlugin.h"
 #include "MAVLinkProtocol.h"
-#include "QGCApplication.h"
+#include "AppMessages.h"
 #include "MissionCommandTree.h"
 #include "MissionCommandUIInfo.h"
 #include "QGCLoggingCategory.h"
 
-QGC_LOGGING_CATEGORY(MissionManagerLog, "MissionManagerLog")
+QGC_LOGGING_CATEGORY(MissionManagerLog, "PlanManager.MissionManager")
 
 MissionManager::MissionManager(Vehicle* vehicle)
     : PlanManager               (vehicle, MAV_MISSION_TYPE_MISSION)
@@ -29,6 +21,7 @@ MissionManager::~MissionManager()
 {
 
 }
+
 void MissionManager::writeArduPilotGuidedMissionItem(const QGeoCoordinate& gotoCoord, bool altChangeOnly)
 {
     if (inProgress()) {
@@ -61,8 +54,8 @@ void MissionManager::writeArduPilotGuidedMissionItem(const QGeoCoordinate& gotoC
         missionItem.current =           altChangeOnly ? 3 : 2;
         missionItem.autocontinue =      true;
 
-        mavlink_msg_mission_item_encode_chan(qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
-                                             qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
+        mavlink_msg_mission_item_encode_chan(MAVLinkProtocol::instance()->getSystemId(),
+                                             MAVLinkProtocol::getComponentId(),
                                              sharedLink->mavlinkChannel(),
                                              &messageOut,
                                              &missionItem);
@@ -87,7 +80,7 @@ void MissionManager::generateResumeMission(int resumeIndex)
     for (int i=0; i<_missionItems.count(); i++) {
         MissionItem* item = _missionItems[i];
         if (item->command() == MAV_CMD_DO_JUMP) {
-            qgcApp()->showAppMessage(tr("Unable to generate resume mission due to MAV_CMD_DO_JUMP command."));
+            QGC::showAppMessage(tr("Unable to generate resume mission due to MAV_CMD_DO_JUMP command."));
             return;
         }
     }
@@ -96,11 +89,11 @@ void MissionManager::generateResumeMission(int resumeIndex)
     resumeIndex = qMax(0, qMin(resumeIndex, _missionItems.count() - 1));
 
     // Adjust resume index to be a location based command
-    const MissionCommandUIInfo* uiInfo = qgcApp()->toolbox()->missionCommandTree()->getUIInfo(_vehicle, _vehicle->vehicleClass(), _missionItems[resumeIndex]->command());
+    const MissionCommandUIInfo* uiInfo = MissionCommandTree::instance()->getUIInfo(_vehicle, _vehicle->vehicleClass(), _missionItems[resumeIndex]->command());
     if (!uiInfo || uiInfo->isStandaloneCoordinate() || !uiInfo->specifiesCoordinate()) {
         // We have to back up to the last command which the vehicle flies through
         while (--resumeIndex > 0) {
-            uiInfo = qgcApp()->toolbox()->missionCommandTree()->getUIInfo(_vehicle, _vehicle->vehicleClass(), _missionItems[resumeIndex]->command());
+            uiInfo = MissionCommandTree::instance()->getUIInfo(_vehicle, _vehicle->vehicleClass(), _missionItems[resumeIndex]->command());
             if (uiInfo && (uiInfo->specifiesCoordinate() && !uiInfo->isStandaloneCoordinate())) {
                 // Found it
                 break;
@@ -135,8 +128,8 @@ void MissionManager::generateResumeMission(int resumeIndex)
     int prefixCommandCount = 0;
     for (int i=0; i<_missionItems.count(); i++) {
         MissionItem* oldItem = _missionItems[i];
-        const MissionCommandUIInfo* uiInfo = qgcApp()->toolbox()->missionCommandTree()->getUIInfo(_vehicle, _vehicle->vehicleClass(), oldItem->command());
-        if ((i == 0 && addHomePosition) || i >= resumeIndex || includedResumeCommands.contains(oldItem->command()) || (uiInfo && uiInfo->isTakeoffCommand())) {
+        const MissionCommandUIInfo* loopUiInfo = MissionCommandTree::instance()->getUIInfo(_vehicle, _vehicle->vehicleClass(), oldItem->command());
+        if ((i == 0 && addHomePosition) || i >= resumeIndex || includedResumeCommands.contains(oldItem->command()) || (loopUiInfo && loopUiInfo->isTakeoffCommand())) {
             if (i < resumeIndex) {
                 prefixCommandCount++;
             }
@@ -257,14 +250,14 @@ void MissionManager::_updateMissionIndex(int index)
     }
 }
 
-void MissionManager::_handleHighLatency(const mavlink_message_t& message) 
+void MissionManager::_handleHighLatency(const mavlink_message_t& message)
 {
     mavlink_high_latency_t highLatency;
     mavlink_msg_high_latency_decode(&message, &highLatency);
     _updateMissionIndex(highLatency.wp_num);
 }
 
-void MissionManager::_handleHighLatency2(const mavlink_message_t& message) 
+void MissionManager::_handleHighLatency2(const mavlink_message_t& message)
 {
     mavlink_high_latency2_t highLatency2;
     mavlink_msg_high_latency2_decode(&message, &highLatency2);
@@ -289,4 +282,3 @@ void MissionManager::_handleHeartbeat(const mavlink_message_t& message)
         emit lastCurrentIndexChanged(_lastCurrentIndex);
     }
 }
-

@@ -1,21 +1,9 @@
-/****************************************************************************
- *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 
 import QGroundControl
 import QGroundControl.Controls
-import QGroundControl.FactSystem
-import QGroundControl.ScreenTools
-import QGroundControl.Controllers
 
 SetupPage {
     id:             motorPage
@@ -28,7 +16,7 @@ SetupPage {
 
     property int neutralValue: 50;
     property int _lastIndex: 0;
-    property bool canRunManualTest: controller.vehicle.flightMode !== 'Motor Detection' && controller.vehicle.armed && motorPage.visible && setupView.visible
+    property bool canRunManualTest: controller.vehicle.flightMode !== controller.vehicle.motorDetectionFlightMode && controller.vehicle.armed && motorPage.visible && setupView.visible
     property var shouldRunManualTest: false // Does the operator intend to run the motor test?
 
     APMSubMotorComponentController {
@@ -237,10 +225,10 @@ SetupPage {
                     QGCButton {
                         id: startAutoDetection
                         text: "Auto-Detect Directions"
-                        enabled: controller.vehicle.flightMode !== 'Motor Detection'
+                        enabled: controller.vehicle.flightMode !== controller.vehicle.motorDetectionFlightMode
 
                         onClicked: function() {
-                            controller.vehicle.flightMode = "Motor Detection"
+                            controller.vehicle.flightMode = controller.vehicle.motorDetectionFlightMode
                             controller.vehicle.armed = true
                         }
                     }
@@ -306,4 +294,4 @@ SetupPage {
             }
         } // Column
     } // Component
-} // SetupPahe
+} // SetupPage

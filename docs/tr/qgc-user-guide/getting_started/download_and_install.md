@@ -16,7 +16,7 @@ En iyi deneyim ve uyumluluk için size işletim sisteminizin en yeni sürümün�
 
 ## Windows {#windows}
 
-_QGroundControl_ Windows'un 64 bit versiyonlarına kurulabilir:
+Supported versions: Windows 10 (1809 or later), Windows 11:
 
 1. Download [QGroundControl-installer.exe](https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl-installer.exe).
 2. exe'ye çift tıklayın.
@@ -27,14 +27,9 @@ Eğer başlatma veya video işleme sorunları yaşamıyorsanız ilk kısayolu ku
 For more information see [Troubleshooting QGC Setup > Windows: UI Rendering/Video Driver Issues](../troubleshooting/qgc_setup.md#opengl_troubleshooting).
 :::
 
-:::info
-4.0'dan itibaren önceki _QGroundControl_ sürümleri sadece 64 bittir.
-Manuel olarak 32 bit sürümler oluşturmak mümkündür (bu, geliştirici ekip tarafından desteklenmez).
-:::
+## Mac OS {#macOS}
 
-## Mac OS X {#macOS}
-
-_QGroundControl_ can be installed on macOS 10.11 or later: <!-- match version using https://dev.qgroundcontrol.com/master/en/getting_started/#native-builds -->
+Supported versions: macOS 12 (Monterey) or later:
 
 <!-- match version using https://docs.qgroundcontrol.com/master/en/qgc-dev-guide/getting_started/#native-builds -->
 
@@ -43,59 +38,73 @@ _QGroundControl_ can be installed on macOS 10.11 or later: <!-- match version us
 1. Download [QGroundControl.dmg](https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl.dmg).
 2. .dmg dosyasına çift tıklayın, ardından çıkan ekranda _QGroundControl_'ü _Application_ dosyasına sürükleyin.
 
-::: info
-QGroundControl continues to not be signed which causes problem on Catalina. To open QGC app for the first time:
-
-- QGC uygulama ikonuna sağ tıklayın, menüden Aç'ı seçin. Karşınıza yalnızca İptal Et seçeneği çıkacaktır. İptal Et'i seçin.
-- QGC uygulama ikonuna tekrar sağ tıklayın, menüden Aç'ı seçin. Bu sefer Aç seçeneği de size sunulacaktır.
-  :::
+:::info
+QGroundControl continues to not be signed. You will not to allow permission for it to install based on your macOS version.
+:::
 
 ## Ubuntu Linux {#ubuntu}
 
-_QGroundControl_ can be installed/run on Ubuntu LTS 20.04 (and later).
+Supported versions: Ubuntu 22.04, 24.04:
 
 Ubuntu, bir seri bağlantı noktasının (veya USB serisinin) robotikle ilgili kullanımına müdahale eden bir seri modem yöneticisi ile birlikte gelir.
 _ QGroundControl _ 'ü kurmadan önce modem yöneticisini kaldırmalı ve seri bağlantı noktasına erişim için kendinize izin vermelisiniz.
 Ayrıca video akışını desteklemek için _ GStreamer _ 'ı da yüklemeniz gerekmektedir.
 
-QGroundControl \* 'ı ilk kez kurmadan önce:
+**Before installing _QGroundControl_ for the first time:**
 
-1. On the command prompt enter:
-   ```sh
-   sudo usermod -a -G dialout $USER
-   sudo apt-get remove modemmanager -y
-   sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl -y
-   sudo apt install libqt5gui5 -y
-   sudo apt install libfuse2 -y
-   ```
-   <!-- Note, remove install of libqt5gui5 https://github.com/mavlink/qgroundcontrol/issues/10176 fixed -->
-2. Logout and login again to enable the change to user permissions.
+1. Enable serial-port access
+   Add your user to the dialout group so you can talk to USB devices without root:
 
-&nbsp; _ QGroundControl _ yüklemek için:
-
-1. Download [QGroundControl.AppImage](https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl.AppImage).
-2. Install (and run) using the terminal commands:
-   ```sh
-   Aşağıdaki terminal komutlarını kullanarak kurun (ve çalıştırın):
-      sh
-      chmod +x ./QGroundControl.AppImage
-      ./QGroundControl.AppImage (or double click)
-   ```
-
-There are known [video steaming issues](../troubleshooting/qgc_setup.md#dual_vga) on Ubuntu 18.04 systems with dual adaptors.
-:::
+```
+sudo usermod -aG dialout "$(id -un)"
+```
 
 :::info
-4.0'dan itibaren önceki _QGroundControl_ sürümleri Ubuntu 16.04'te çalıştırılamaz.
-Bu versiyonları Ubuntu 16.04'te çalıştırabilmek için [build QGroundControl from source without video libraries](https://dev.qgroundcontrol.com/en/getting_started/).
+At login, your shell takes a snapshot of your user and group memberships. Because you just changed groups, you need a fresh login shell to pick up “dialout” access. Logging out and back in reloads that snapshot, so you get the new permissions.
 :::
+
+1. (Optional) Disable ModemManager
+   On some Ubuntu-based systems, ModemManager can claim serial ports that QGC needs. If you don't use it elsewhere, mask or remove it.
+
+```
+# preferred: stop and mask the service
+sudo systemctl mask --now ModemManager.service
+
+# or, if you’d rather remove the package
+sudo apt remove --purge modemmanager
+```
+
+1. On the command prompt, enter:
+
+```sh
+sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl -y
+sudo apt install python3-gi python3-gst-1.0 -y
+sudo apt install libfuse2 -y
+sudo apt install libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev -y
+```
+
+**To install _QGroundControl_:**
+
+1. Download [QGroundControl-x86_64.AppImage](https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl-x86_64.AppImage).
+
+2. Make the AppImage executable
+
+```
+chmod +x QGroundControl-<arch>.AppImage
+```
+
+1. Run QGroundControl
+   Either double-click the AppImage in your file manager or launch it from a terminal:
+
+```
+./QGroundControl-<arch>.AppImage
+```
 
 ## Android {#android}
 
-_QGroundControl_ is temporily unavailable from the Google Play Store. You can install manually from here:
+Supported versions: Android 9 to 15 (arm 32/64):
 
-- [Android 32 bit APK](https://qgroundcontrol.s3-us-west-2.amazonaws.com/latest/QGroundControl32.apk)
-- [Android 64 bit APK](https://qgroundcontrol.s3-us-west-2.amazonaws.com/latest/QGroundControl64.apk)
+- [Android 32/64 bit APK](https://qgroundcontrol.s3-us-west-2.amazonaws.com/latest/QGroundControl.apk)
 
 ## Old Stable Releases
 

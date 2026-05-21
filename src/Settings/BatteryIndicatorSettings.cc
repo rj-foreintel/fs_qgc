@@ -1,31 +1,13 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "BatteryIndicatorSettings.h"
 
 #include <QSettings>
-#include <QtQml/QQmlEngine>
 
-// Declare the settings group for Battery Indicator
 DECLARE_SETTINGGROUP(BatteryIndicator, "BatteryIndicator")
 {
-    // Register the BatteryIndicatorSettings type for QML use
-    qmlRegisterUncreatableType<BatteryIndicatorSettings>("QGroundControl.SettingsManager", 1, 0, "BatteryIndicatorSettings", "Reference only");
 }
 
-// Declare standard setting facts for the BatteryIndicatorSettings
-DECLARE_SETTINGSFACT(BatteryIndicatorSettings, display)             // Visibility of battery indicator
-DECLARE_SETTINGSFACT(BatteryIndicatorSettings, battery_state_display) // Battery state display mode
-
-// Declare visibility settings for threshold editability
-DECLARE_SETTINGSFACT(BatteryIndicatorSettings, threshold1visible) // Determines if the FactTextField for threshold 1 is visible (editable)
-DECLARE_SETTINGSFACT(BatteryIndicatorSettings, threshold2visible) // Determines if the FactTextField for threshold 2 is visible (editable)
+DECLARE_SETTINGSFACT(BatteryIndicatorSettings, valueDisplay)
+DECLARE_SETTINGSFACT(BatteryIndicatorSettings, consolidateMultipleBatteries)
 
 DECLARE_SETTINGSFACT_NO_FUNC(BatteryIndicatorSettings, threshold1)
 {

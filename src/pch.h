@@ -1,38 +1,52 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
+#pragma once
 
-#ifdef __cplusplus
-#include <QtBluetooth/QBluetoothSocket>
-#include <QtCharts/QAbstractSeries>
-#include <QtConcurrent/QtConcurrent>
+// STL
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <vector>
+
+// Qt Core - fundamentals
+#include <QtCore/QByteArray>
 #include <QtCore/QCoreApplication>
-#include <QtGui/QGuiApplication>
-#include <QtLocation/QGeoServiceProvider>
-#include <QtMultimedia/QMediaDevices>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtPositioning/QGeoCoordinate>
-#include <QtQml/QQmlApplicationEngine>
-#include <QtQmlIntegration/QtQmlIntegration>
-#include <QtQuick/QQuickItem>
-#include <QtQuickControls2/QQuickStyle>
-#include <QtSql/QSqlDatabase>
-#include <QtTest/QSignalSpy>
-#include <QtTextToSpeech/QTextToSpeech>
-#include <QtWidgets/QApplication>
-#include <QtXml/QDomDocument>
-#if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
-#include <QtSerialPort/QSerialPort>
-#endif
-#ifdef Q_OS_ANDROID
-#include <QtCore/QJniEnvironment>
-#endif
-#ifdef QT_DEBUG
 #include <QtCore/QDebug>
-#endif
-#endif
+#include <QtCore/QDateTime>
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QHash>
+#include <QtCore/QList>
+#include <QtCore/QMap>
+#include <QtCore/QObject>
+#include <QtCore/QSettings>
+#include <QtCore/QString>
+#include <QtCore/QStringList>
+#include <QtCore/QtGlobal>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+#include <QtCore/QVariant>
+#include <QtCore/QVariantList>
+
+// Qt Core - JSON
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
+
+// Qt Core - utilities
+#include <QtCore/QApplicationStatic>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QMutex>
+#include <QtCore/QPointer>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QStandardPaths>
+
+// Qt Positioning - used in 50+ files
+#include <QtPositioning/QGeoCoordinate>
+
+// Qt Qml/Quick - QML integration macros used in ~130 headers.
+// Note: QQuickItem intentionally omitted — pulls full QtQuick (scene graph, GL) everywhere.
+#include <QtQml/QQmlEngine>
+#include <QtQmlIntegration/QtQmlIntegration>
+
+// MAVLink - used in 400+ locations
+#include "MAVLinkLib.h"

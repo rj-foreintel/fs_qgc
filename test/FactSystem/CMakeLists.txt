@@ -1,36 +1,39 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Qml Quick Test)
+# ============================================================================
+# Fact System Unit Tests
+# Tests for parameter management and fact metadata
+# ============================================================================
 
-qt_add_library(FactSystemTest
-    STATIC
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        FactGroupTest.cc
+        FactGroupTest.h
+        FactMetaDataTest.cc
+        FactMetaDataTest.h
+        PX4ParameterMetaDataTest.cc
+        PX4ParameterMetaDataTest.h
         FactSystemTestBase.cc
         FactSystemTestBase.h
         FactSystemTestGeneric.cc
         FactSystemTestGeneric.h
         FactSystemTestPX4.cc
         FactSystemTestPX4.h
+        FactTest.cc
+        FactTest.h
+        FactValueSliderListModelTest.cc
+        FactValueSliderListModelTest.h
+        HashCheckTest.cc
+        HashCheckTest.h
         ParameterManagerTest.cc
         ParameterManagerTest.h
+        ParameterMetaDataTestHelper.h
 )
 
-target_link_libraries(FactSystemTest
-    PRIVATE
-        Qt6::Quick
-        Qt6::Test
-        AutoPilotPlugins
-        FactSystem
-        QGC
-        Settings
-        Vehicle
-    PUBLIC
-        qgcunittest
-)
+if(NOT QGC_DISABLE_APM_PLUGIN)
+    target_sources(${CMAKE_PROJECT_NAME}
+        PRIVATE
+            APMParameterMetaDataTest.cc
+            APMParameterMetaDataTest.h
+    )
+endif()
 
-target_include_directories(FactSystemTest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-qt_add_qml_module(FactSystemTest
-    URI factsystemtest
-    VERSION 1.0
-    QML_FILES
-        FactSystemTest.qml
-    IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
-)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
