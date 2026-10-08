@@ -38,15 +38,24 @@ QQmlApplicationEngine *ForeViewPlugin::createQmlApplicationEngine(QObject *paren
 
 QUrl ForeViewOverrideInterceptor::intercept(const QUrl &url, QQmlAbstractUrlInterceptor::DataType type)
 {
-    if ((type == QQmlAbstractUrlInterceptor::QmlFile || type == QQmlAbstractUrlInterceptor::UrlString)
-            && url.scheme() == QStringLiteral("qrc")) {
-        const QString overridePath = QStringLiteral("/Custom%1").arg(url.path());
-        if (QFile::exists(QLatin1Char(':') + overridePath)) {
-            QUrl result;
-            result.setScheme(QStringLiteral("qrc"));
-            result.setPath(overridePath);
-            return result;
-        }
+    if (type != QQmlAbstractUrlInterceptor::QmlFile && type != QQmlAbstractUrlInterceptor::UrlString) {
+        return url;
     }
-    return url;
+
+    // Plain resources (qrc:/res/X) and tinted icons, which QGCColoredImage loads
+    // through its image provider as image://coloredsvg/res/X?color=...
+    const bool isResource = url.scheme() == QStringLiteral("qrc");
+    const bool isTintedIcon = url.scheme() == QStringLiteral("image") && url.host() == QStringLiteral("coloredsvg");
+    if (!isResource && !isTintedIcon) {
+        return url;
+    }
+
+    const QString overridePath = QStringLiteral("/Custom%1").arg(url.path());
+    if (!QFile::exists(QLatin1Char(':') + overridePath)) {
+        return url;
+    }
+
+    QUrl result(url);
+    result.setPath(overridePath);
+    return result;
 }
