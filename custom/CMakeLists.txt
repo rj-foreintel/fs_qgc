@@ -16,9 +16,11 @@ if(ANDROID)
     set(_custom_android_dir  "${CMAKE_CURRENT_SOURCE_DIR}/android")
     set(_final_android_dir   "${CMAKE_BINARY_DIR}/custom/android")
 
+    # copy_directory always overwrites. file(COPY) would skip our icons whenever
+    # they share a timestamp with the stock ones, which is the norm after a git checkout.
     file(REMOVE_RECURSE "${_final_android_dir}")
-    file(COPY "${_default_android_dir}/." DESTINATION "${_final_android_dir}")
-    file(COPY "${_custom_android_dir}/." DESTINATION "${_final_android_dir}")
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory "${_default_android_dir}" "${_final_android_dir}" COMMAND_ERROR_IS_FATAL ANY)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory "${_custom_android_dir}" "${_final_android_dir}" COMMAND_ERROR_IS_FATAL ANY)
 
     # The stock build.gradle never sets applicationId, so Gradle would fall back
     # to the "org.mavlink.qgroundcontrol" namespace and ForeView would collide
