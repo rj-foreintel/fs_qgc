@@ -24,7 +24,7 @@ permissions:
 env:
   # ForeView version shown in the app, installer and APK. Bump for each release.
   FOREVIEW_VERSION: 0.1.0
-  IS_STABLE_BUILD: 'false'
+  IS_STABLE_BUILD: 'true'
 
 jobs:
   linux:
@@ -71,19 +71,41 @@ jobs:
           build-type: Release
 
       - name: Verify Executable
+        id: verify-binary
         uses: ./.github/actions/verify-executable
         with:
           binary-path: ${{ runner.temp }}/build/Release/ForeView
 
       - name: Create AppImage
+        id: appimage
         working-directory: ${{ runner.temp }}/build
-        run: cmake --install . --config Release
+        run: |
+          set -o pipefail
+          cmake --install . --config Release 2>&1 | tee appimage.log
 
       - name: Verify AppImage
+        id: verify-appimage
         uses: ./.github/actions/verify-executable
         with:
           binary-path: ${{ runner.temp }}/build/ForeView-x86_64.AppImage
           type: appimage
+
+      # Step logs are not always at hand when debugging this fork, so surface
+      # the failing step and the tail of the packaging log as annotations.
+      - name: Report failure
+        if: failure()
+        env:
+          OUTCOMES: >-
+            verify-binary=${{ steps.verify-binary.outcome }}
+            appimage=${{ steps.appimage.outcome }}
+            verify-appimage=${{ steps.verify-appimage.outcome }}
+        run: |
+          echo "::error title=Linux step outcomes::${OUTCOMES}"
+          log="${RUNNER_TEMP}/build/appimage.log"
+          if [[ -f "$log" ]]; then
+            body=$(tail -n 60 "$log" | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=AppImage log (tail)::${body}"
+          fi
 
       - name: Upload
         uses: actions/upload-artifact@v7

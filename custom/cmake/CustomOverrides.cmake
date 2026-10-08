@@ -16,7 +16,10 @@ set(QGC_APP_DESCRIPTION "ForeView Ground Control Station" CACHE STRING "Applicat
 set(QGC_ORG_NAME        "Foreintel Solutions"          CACHE STRING "Organization name" FORCE)
 string(TIMESTAMP _foreview_year "%Y")
 set(QGC_APP_COPYRIGHT   "Copyright (c) ${_foreview_year} Foreintel Solutions Pvt. Ltd. Based on QGroundControl." CACHE STRING "Copyright notice" FORCE)
-# set(QGC_ORG_DOMAIN    "foreintel.example"            CACHE STRING "Organization domain" FORCE)
+
+# Always build as a release: the window title, settings folder and Android
+# label read "ForeView" instead of QGC's development-build "ForeView Daily".
+set(QGC_STABLE_BUILD ON CACHE BOOL "Stable release build (disables daily build features)" FORCE)
 
 # Reverse-domain identifier. It is the Android application ID, the Linux
 # desktop-entry name and the macOS bundle ID. A different ID from stock QGC
@@ -37,6 +40,17 @@ set(QGC_WINDOWS_INSTALL_HEADER_PATH "${_foreview_dir}/deploy/windows/installhead
 # Linux: desktop/AppImage icons
 set(QGC_APPIMAGE_ICON_256_PATH      "${_foreview_dir}/res/icons/ForeView_256.png" CACHE FILEPATH "AppImage 256x256 icon path" FORCE)
 set(QGC_APPIMAGE_ICON_SCALABLE_PATH "${_foreview_dir}/res/icons/ForeView.svg"     CACHE FILEPATH "AppImage SVG icon path" FORCE)
+set(QGC_APPIMAGE_METADATA_PATH      "${_foreview_dir}/deploy/linux/foreview.appdata.xml.in" CACHE FILEPATH "AppImage metadata path" FORCE)
+
+# The stock AppRun looks for a binary named QGroundControl; teach it ForeView.
+file(READ "${CMAKE_SOURCE_DIR}/deploy/linux/AppRun" _foreview_apprun)
+string(REPLACE "for expected_name in QGroundControl"
+               "for expected_name in ${QGC_APP_NAME} QGroundControl"
+               _foreview_apprun "${_foreview_apprun}")
+file(WRITE "${CMAKE_BINARY_DIR}/foreview/AppRun" "${_foreview_apprun}")
+file(CHMOD "${CMAKE_BINARY_DIR}/foreview/AppRun"
+     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+set(QGC_APPIMAGE_APPRUN_PATH "${CMAKE_BINARY_DIR}/foreview/AppRun" CACHE FILEPATH "AppImage AppRun script path" FORCE)
 
 # macOS
 set(QGC_MACOS_ICON_PATH             "${_foreview_dir}/res/icons/ForeView.icns"    CACHE FILEPATH "MacOS Icon Path" FORCE)

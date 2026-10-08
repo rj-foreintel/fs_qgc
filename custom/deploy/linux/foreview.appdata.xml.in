@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>@QGC_PACKAGE_NAME@</id>
+  <name>@QGC_APP_NAME@</name>
+  <launchable type="desktop-id">@QGC_PACKAGE_NAME@.desktop</launchable>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0 OR GPL-3.0</project_license>
+  <content_rating type="oars-1.1"/>
+
+  <developer id="com.foreintel">
+    <name translate="no">@QGC_ORG_NAME@</name>
+  </developer>
+
+  <summary>@QGC_APP_DESCRIPTION@</summary>
+  <description>
+    <p>
+      ForeView is the ground control station for Foreintel Solutions drones, built on QGroundControl.
+      It handles vehicle setup, flight monitoring and mission planning for MAVLink drones.
+    </p>
+  </description>
+  <icon type="stock">@QGC_APP_NAME@</icon>
+
+  <provides>
+    <binary>@QGC_APP_NAME@</binary>
+  </provides>
+
+  <releases>
+    <release version="@CMAKE_PROJECT_VERSION@" date="@QGC_APP_DATE@"/>
+  </releases>
+
+  <url type="homepage">https://github.com/rj-foreintel/fs_qgc</url>
+
+  <requires>
+    <display_length>360</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+    <control>gamepad</control>
+  </supports>
+
+  <categories>
+    <category>Qt</category>
+    <category>Utility</category>
+    <category>Maps</category>
+  </categories>
+
+  <keywords>
+    <keyword translate="no">mavlink</keyword>
+    <keyword>drone</keyword>
+    <keyword translate="no">ardupilot</keyword>
+  </keywords>
+</component>
