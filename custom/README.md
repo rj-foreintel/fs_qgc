@@ -38,11 +38,17 @@ cmake --build build
 ./build/Release/ForeView                         # or: cmake --install build to make an AppImage
 ```
 
-### Windows and Android
+### Branches and CI builds
 
-Run the **Windows** and **Android** workflows on the branch from the
-fork's GitHub Actions tab (*Run workflow*). The installer and the APK are
-attached to the run as artifacts.
+| Branch | Purpose | CI result |
+|---|---|---|
+| `foreview-main` | The ForeView main branch. Everything we ship is merged here. | Linux, Windows and Android builds, published as a GitHub pre-release |
+| `foreview-<feature>` (e.g. `foreview-rtmp`) | One branch per change. Merge it into `foreview-main` when it is done. | The same three builds, attached to the Actions run as artifacts (no release) |
+| `master` | Untouched copy of upstream QGroundControl. Merge it into `foreview-main` to pick up QGC updates. | — |
+
+The workflow is `.github/workflows/foreview.yml`. Other branch names are not
+built automatically; use *Run workflow* on the ForeView workflow in the
+Actions tab to build them.
 
 The APK installs alongside stock QGroundControl on the SIYI MK15 because it
 uses its own package ID. Without the `ANDROID_KEYSTORE_PASSWORD` secret, CI

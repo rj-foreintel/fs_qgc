@@ -2,8 +2,12 @@
 #
 # The upstream linux/windows/android workflows hard-code the QGroundControl
 # binary and package names, so ForeView gets its own workflow built from the
-# same composite actions. Each successful run publishes a GitHub pre-release
-# with the AppImage, the Windows installer and the APK.
+# same composite actions.
+#
+# foreview-main is the integration branch: each push to it publishes a GitHub
+# pre-release with the AppImage, the Windows installer and the APK. Pushes to
+# other foreview* branches build the same files as run artifacts only, for
+# testing before merging.
 name: ForeView
 
 on:
@@ -295,6 +299,7 @@ jobs:
   release:
     name: Publish pre-release
     needs: [linux, windows, android]
+    if: github.ref == 'refs/heads/foreview-main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
