@@ -7,6 +7,7 @@
 
 class QGCVideoStreamInfo;
 class QQuickItem;
+class VideoLiveStreamer;
 
 class VideoReceiver : public QObject
 {
@@ -28,6 +29,8 @@ public:
     bool lowLatency() const { return _lowLatency; }
     QGCVideoStreamInfo *videoStreamInfo() { return _videoStreamInfo; }
     QString recordingOutput() const { return _recordingOutput; }
+    /// Publisher that forwards this receiver's video to an RTMP server, or nullptr if unsupported.
+    virtual VideoLiveStreamer *liveStreamer() { return nullptr; }
 
     virtual void setSink(void *sink) { if (sink != _sink) { _sink = sink; emit sinkChanged(_sink); } }
     virtual void setWidget(QQuickItem *widget) { if (widget != _widget) { _widget = widget; emit widgetChanged(_widget); } }

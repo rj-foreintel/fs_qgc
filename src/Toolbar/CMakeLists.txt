@@ -19,6 +19,7 @@ qt_add_qml_module(ToolbarModule
         GPSIndicatorPage.qml
         GPSResilienceIndicator.qml
         JoystickIndicator.qml
+        LiveStreamIndicator.qml
         MainStatusIndicator.qml
         MainStatusIndicatorOfflinePage.qml
         ModeIndicator.qml

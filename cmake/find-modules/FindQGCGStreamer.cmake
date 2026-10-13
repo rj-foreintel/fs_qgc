@@ -784,6 +784,7 @@ if(NOT DEFINED GSTREAMER_PLUGINS)
     set(GSTREAMER_PLUGINS
         app
         coreelements
+        flv             # flvmux for RTMP live streaming
         isomp4
         libav
         matroska
@@ -791,6 +792,7 @@ if(NOT DEFINED GSTREAMER_PLUGINS)
         opengl
         openh264
         playback
+        rtmp2           # rtmp2sink for RTMP/RTMPS live streaming
         rtp
         rtpmanager
         rtsp

@@ -108,6 +108,13 @@ GST_PLUGIN_STATIC_DECLARE(va);
 #ifdef GST_PLUGIN_vulkan_FOUND
 GST_PLUGIN_STATIC_DECLARE(vulkan);
 #endif
+// RTMP live streaming (GstRtmpStreamer). Optional: without them "Go Live" reports the missing element.
+#ifdef GST_PLUGIN_flv_FOUND
+GST_PLUGIN_STATIC_DECLARE(flv);
+#endif
+#ifdef GST_PLUGIN_rtmp2_FOUND
+GST_PLUGIN_STATIC_DECLARE(rtmp2);
+#endif
 #endif
 
 GST_PLUGIN_STATIC_DECLARE(qgc);
@@ -184,6 +191,12 @@ void _registerPlugins()
 #endif
 #ifdef GST_PLUGIN_vulkan_FOUND
     GST_PLUGIN_STATIC_REGISTER(vulkan);
+#endif
+#ifdef GST_PLUGIN_flv_FOUND
+    GST_PLUGIN_STATIC_REGISTER(flv);
+#endif
+#ifdef GST_PLUGIN_rtmp2_FOUND
+    GST_PLUGIN_STATIC_REGISTER(rtmp2);
 #endif
 #endif
 

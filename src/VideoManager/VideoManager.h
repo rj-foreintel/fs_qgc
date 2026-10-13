@@ -12,6 +12,7 @@
 class QQuickWindow;
 class SubtitleWriter;
 class Vehicle;
+class VideoLiveStreamer;
 class VideoReceiver;
 class VideoSettings;
 
@@ -21,6 +22,7 @@ class VideoManager : public QObject
     QML_ELEMENT
     QML_UNCREATABLE("")
     Q_MOC_INCLUDE("Vehicle.h")
+    Q_MOC_INCLUDE("VideoLiveStreamer.h")
 
     Q_PROPERTY(bool     gstreamerEnabled        READ gstreamerEnabled                           CONSTANT)
     Q_PROPERTY(bool     qtmultimediaEnabled     READ qtmultimediaEnabled                        CONSTANT)
@@ -41,6 +43,8 @@ class VideoManager : public QObject
     Q_PROPERTY(QSize    videoSize               READ videoSize                                  NOTIFY videoSizeChanged)
     Q_PROPERTY(QString  imageFile               READ imageFile                                  NOTIFY imageFileChanged)
     Q_PROPERTY(QString  uvcVideoSourceID        READ uvcVideoSourceID                           NOTIFY uvcVideoSourceIDChanged)
+    /// RTMP publisher for the main video stream; nullptr when the video backend cannot stream.
+    Q_PROPERTY(VideoLiveStreamer *liveStreamer  READ liveStreamer                               NOTIFY liveStreamerChanged)
 
     friend class VideoManagerInitTest;
 
@@ -55,6 +59,9 @@ public:
     Q_INVOKABLE void startVideo();
     Q_INVOKABLE void stopRecording();
     Q_INVOKABLE void stopVideo();
+    /// Starts sending the main video to the RTMP URL in Video settings (if live streaming is enabled).
+    Q_INVOKABLE void startLiveStream();
+    Q_INVOKABLE void stopLiveStream();
 
     void init(QQuickWindow *mainWindow);
     void startGStreamerInit();
@@ -76,6 +83,8 @@ public:
     QSize videoSize() const { return _videoSize; }
     QString imageFile() const { return _imageFile; }
     QString uvcVideoSourceID() const { return _uvcVideoSourceID; }
+    VideoLiveStreamer *liveStreamer() const;
+    static bool isValidLiveStreamUrl(const QString &url);
     void setfullScreen(bool on);
     static bool gstreamerEnabled();
     static bool qtmultimediaEnabled();
@@ -91,6 +100,7 @@ signals:
     void isAutoStreamChanged();
     void isStreamSourceChanged();
     void isUvcChanged();
+    void liveStreamerChanged();
     void recordingChanged(bool recording);
     void recordingStarted(const QString &filename);
     void streamingChanged();

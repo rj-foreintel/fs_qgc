@@ -199,6 +199,24 @@
             "default": false,
             "label": "Smooth frame pacing (experimental)",
             "keywords": "smoothing,jitter,pacing,latency,obs"
+        },
+        {
+            "name": "liveStreamEnabled",
+            "shortDesc": "Show the Go Live control for streaming the camera video to an RTMP server.",
+            "longDesc": "When enabled, a LIVE indicator appears in the toolbar. Use it to start and stop sending the received camera video, unchanged, to the RTMP URL below. The device needs an internet connection.",
+            "type": "bool",
+            "default": false,
+            "label": "Enable Live Streaming",
+            "keywords": "rtmp,rtmps,live,go live,broadcast,restream"
+        },
+        {
+            "name": "liveStreamUrl",
+            "shortDesc": "RTMP server address including the stream key, e.g. rtmp://server:1935/live/streamkey. Use rtmps:// for a secure connection.",
+            "longDesc": "Full publish address supplied by the streaming server: rtmp://host[:port]/application/streamkey (or rtmps:// for TLS).",
+            "type": "string",
+            "default": "",
+            "label": "RTMP URL",
+            "keywords": "rtmp,rtmps,stream key,server,live"
         }
     ]
 }

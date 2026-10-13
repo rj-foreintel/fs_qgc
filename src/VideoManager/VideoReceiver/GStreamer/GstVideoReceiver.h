@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QtCore/QAtomicInteger>
 #include <QtCore/QMutex>
 #include <QtCore/QQueue>
 #include <QtCore/QThread>
@@ -11,6 +12,9 @@
 #include <gst/gstpad.h>
 
 #include "VideoReceiver.h"
+
+class GstRtmpStreamer;
+typedef struct _GstAppSink GstAppSink;
 
 typedef std::function<void()> Task;
 
@@ -61,6 +65,8 @@ public:
     double  qosProportion()   const { return _qosProportion; }
     int     qosQuality()      const { return _qosQuality; }
 
+    VideoLiveStreamer *liveStreamer() override;
+
 public slots:
     void start(uint32_t timeout) override;
     void stop() override;
@@ -97,6 +103,7 @@ private:
     void _shutdownDecodingBranch();
     void _shutdownRecordingBranch();
     void _logDecodebin3SelectedCodec(GstElement *decodebin3);
+    void _updateLiveStreamValve();
 
     bool _needDispatch();
     void _dispatchSignal(Task emitter);
@@ -113,6 +120,7 @@ private:
     static GstPadProbeReturn _videoSinkProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
     static GstPadProbeReturn _eosProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
     static GstPadProbeReturn _keyframeWatch(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
+    static GstFlowReturn _onLiveStreamSample(GstAppSink *appsink, gpointer user_data);
 
     GstElement *_decoder = nullptr;
     GstElement *_decoderValve = nullptr;
@@ -122,7 +130,10 @@ private:
     GstElement *_source = nullptr;
     GstElement *_tee = nullptr;
     GstElement *_videoSink = nullptr;
+    GstElement *_liveStreamValve = nullptr;
     GstVideoWorker *_worker = nullptr;
+    GstRtmpStreamer *_liveStreamer = nullptr;
+    QAtomicInteger<bool> _liveStreamTapOpen = false;
     gulong _teeProbeId = 0;
     gulong _videoSinkProbeId = 0;
     gulong _eosProbeId = 0;

@@ -6,6 +6,8 @@
 // _source-->_tee
 //              |
 //              +-->queue-->_recorderValve[-->_fileSink]
+//              |
+//              +-->queue-->_liveStreamValve-->appsink ==> GstRtmpStreamer (own pipeline)
 //-----------------------------------------------------------------------------
 
 #include "GstVideoReceiver.h"
@@ -17,12 +19,14 @@
 #include "HwBuffers/GstD3D12ContextBridge.h"
 #endif
 #include "GStreamerHelpers.h"
+#include "GstRtmpStreamer.h"
 #include "QGCLoggingCategory.h"
 
 #include <QtCore/QDateTime>
 #include <QtCore/QUrl>
 #include <QtQuick/QQuickItem>
 
+#include <gst/app/gstappsink.h>
 #include <gst/gst.h>
 #include <gst/video/video.h>
 
@@ -41,11 +45,26 @@ GstBusSyncReply _contextSyncDispatch(GstBus * /*bus*/, GstMessage *message, gpoi
 GstVideoReceiver::GstVideoReceiver(QObject *parent)
     : VideoReceiver(parent)
     , _worker(new GstVideoWorker(this))
+    , _liveStreamer(new GstRtmpStreamer(this))
 {
     qCDebug(GstVideoReceiverLog) << this;
 
     _worker->start();
     (void) connect(&_watchdogTimer, &QTimer::timeout, this, &GstVideoReceiver::_watchdog);
+
+    // Only feed the publisher while a live stream is running.
+    (void) connect(_liveStreamer, &VideoLiveStreamer::stateChanged, this, [this]() {
+        const bool open = _liveStreamer->active();
+        if (open != _liveStreamTapOpen.loadRelaxed()) {
+            _liveStreamTapOpen.storeRelaxed(open);
+            _worker->dispatch([this]() { _updateLiveStreamValve(); });
+        }
+    });
+}
+
+VideoLiveStreamer *GstVideoReceiver::liveStreamer()
+{
+    return _liveStreamer;
 }
 
 GstVideoReceiver::~GstVideoReceiver()
@@ -87,6 +106,8 @@ void GstVideoReceiver::start(uint32_t timeout)
 
     GstElement *decoderQueue = nullptr;
     GstElement *recorderQueue = nullptr;
+    GstElement *liveStreamQueue = nullptr;
+    GstElement *liveStreamSink = nullptr;
 
     do {
         _tee = gst_element_factory_make("tee", nullptr);
@@ -143,6 +164,49 @@ void GstVideoReceiver::start(uint32_t timeout)
                      "drop", TRUE,
                      nullptr);
 
+        // Live-stream tap: hands the still-encoded video to _liveStreamer. Leaky so a
+        // stalled consumer can never back-pressure the tee and freeze the display.
+        liveStreamQueue = gst_element_factory_make("queue", nullptr);
+        if (!liveStreamQueue) {
+            qCCritical(GstVideoReceiverLog) << "gst_element_factory_make('queue') failed";
+            break;
+        }
+
+        g_object_set(liveStreamQueue,
+                     "leaky", 2 /* downstream */,
+                     "max-size-buffers", 0u,
+                     "max-size-bytes", 0u,
+                     "max-size-time", static_cast<guint64>(GST_SECOND),
+                     nullptr);
+
+        _liveStreamValve = gst_element_factory_make("valve", nullptr);
+        if (!_liveStreamValve) {
+            qCCritical(GstVideoReceiverLog) << "gst_element_factory_make('valve') failed";
+            break;
+        }
+
+        g_object_set(_liveStreamValve,
+                     "drop", _liveStreamTapOpen.loadRelaxed() ? FALSE : TRUE,
+                     nullptr);
+
+        liveStreamSink = gst_element_factory_make("appsink", nullptr);
+        if (!liveStreamSink) {
+            qCCritical(GstVideoReceiverLog) << "gst_element_factory_make('appsink') failed";
+            break;
+        }
+
+        g_object_set(liveStreamSink,
+                     "sync", FALSE,
+                     "async", FALSE,
+                     "enable-last-sample", FALSE,
+                     nullptr);
+        gst_app_sink_set_emit_signals(GST_APP_SINK(liveStreamSink), FALSE);
+        gst_app_sink_set_max_buffers(GST_APP_SINK(liveStreamSink), 8);
+        gst_app_sink_set_drop(GST_APP_SINK(liveStreamSink), TRUE);
+        GstAppSinkCallbacks liveStreamCallbacks = {};
+        liveStreamCallbacks.new_sample = _onLiveStreamSample;
+        gst_app_sink_set_callbacks(GST_APP_SINK(liveStreamSink), &liveStreamCallbacks, this, nullptr);
+
         _pipeline = gst_pipeline_new("receiver");
         if (!_pipeline) {
             qCCritical(GstVideoReceiverLog) << "gst_pipeline_new() failed";
@@ -159,7 +223,8 @@ void GstVideoReceiver::start(uint32_t timeout)
             break;
         }
 
-        gst_bin_add_many(GST_BIN(_pipeline), _source, _tee, decoderQueue, _decoderValve, recorderQueue, _recorderValve, nullptr);
+        gst_bin_add_many(GST_BIN(_pipeline), _source, _tee, decoderQueue, _decoderValve, recorderQueue, _recorderValve,
+                         liveStreamQueue, _liveStreamValve, liveStreamSink, nullptr);
 
         pipelineUp = true;
 
@@ -198,6 +263,11 @@ void GstVideoReceiver::start(uint32_t timeout)
             break;
         }
 
+        if (!gst_element_link_many(_tee, liveStreamQueue, _liveStreamValve, liveStreamSink, nullptr)) {
+            qCCritical(GstVideoReceiverLog) << "Unable to link live stream queue";
+            break;
+        }
+
         GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(_pipeline));
         if (bus) {
             gst_bus_enable_sync_message_emission(bus);
@@ -226,7 +296,13 @@ void GstVideoReceiver::start(uint32_t timeout)
             gst_clear_object(&_pipeline);
         }
 
-        if (!pipelineUp) {
+        if (pipelineUp) {
+            // Owned by the pipeline, which was just freed. _updateLiveStreamValve() must not touch it.
+            _liveStreamValve = nullptr;
+        } else {
+            gst_clear_object(&liveStreamSink);
+            gst_clear_object(&_liveStreamValve);
+            gst_clear_object(&liveStreamQueue);
             gst_clear_object(&_recorderValve);
             gst_clear_object(&recorderQueue);
             gst_clear_object(&_decoderValve);
@@ -331,6 +407,7 @@ void GstVideoReceiver::stop()
 
         _recorderValve = nullptr;
         _decoderValve = nullptr;
+        _liveStreamValve = nullptr;
         _tee = nullptr;
         _source = nullptr;
 
@@ -1384,6 +1461,30 @@ void GstVideoReceiver::_shutdownRecordingBranch()
     }
 
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(_pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline-recording-stopped");
+}
+
+void GstVideoReceiver::_updateLiveStreamValve()
+{
+    if (!_liveStreamValve) {
+        return;
+    }
+
+    const bool open = _liveStreamTapOpen.loadRelaxed();
+    g_object_set(_liveStreamValve,
+                 "drop", open ? FALSE : TRUE,
+                 nullptr);
+    qCDebug(GstVideoReceiverLog) << "Live stream tap" << (open ? "opened" : "closed") << _uri;
+}
+
+GstFlowReturn GstVideoReceiver::_onLiveStreamSample(GstAppSink *appsink, gpointer user_data)
+{
+    GstVideoReceiver *pThis = static_cast<GstVideoReceiver*>(user_data);
+    GstSample *sample = gst_app_sink_pull_sample(appsink);
+    if (sample) {
+        pThis->_liveStreamer->pushSample(sample);
+        gst_sample_unref(sample);
+    }
+    return GST_FLOW_OK;
 }
 
 bool GstVideoReceiver::_needDispatch()
