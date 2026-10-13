@@ -94,6 +94,20 @@ jobs:
           binary-path: ${{ runner.temp }}/build/ForeView-x86_64.AppImage
           type: appimage
 
+      # Live streaming (Go Live) needs these GStreamer plugins bundled; fail the build otherwise.
+      - name: Check live-streaming plugins
+        working-directory: ${{ runner.temp }}
+        run: |
+          rm -rf appimage-check && mkdir appimage-check && cd appimage-check
+          "${RUNNER_TEMP}/build/ForeView-x86_64.AppImage" --appimage-extract >/dev/null
+          for plugin in libgstrtmp2.so libgstflv.so; do
+            if ! find squashfs-root -name "$plugin" | grep -q .; then
+              echo "::error title=Live streaming::${plugin} is missing from the AppImage"
+              exit 1
+            fi
+          done
+          echo "::notice title=Live streaming::rtmp2 and flv plugins are bundled in the AppImage"
+
       # Step logs are not always at hand when debugging this fork, so surface
       # the failing step and the tail of the packaging log as annotations.
       - name: Report failure
@@ -187,6 +201,19 @@ jobs:
       - name: Create Installer
         working-directory: ${{ runner.temp }}\build
         run: cmake --install . --config Release
+
+      # Live streaming (Go Live) needs these GStreamer plugins bundled; fail the build otherwise.
+      - name: Check live-streaming plugins
+        shell: bash
+        run: |
+          listing=$(7z l "${RUNNER_TEMP}/build/ForeView-installer-AMD64.exe")
+          for plugin in gstrtmp2.dll gstflv.dll; do
+            if ! grep -qi "$plugin" <<< "$listing"; then
+              echo "::error title=Live streaming::${plugin} is missing from the installer"
+              exit 1
+            fi
+          done
+          echo "::notice title=Live streaming::rtmp2 and flv plugins are bundled in the installer"
 
       - name: Upload
         uses: actions/upload-artifact@v7
@@ -287,6 +314,28 @@ jobs:
             exit 1
           fi
           cp "${apks[0]}" "${RUNNER_TEMP}/build/ForeView.apk"
+
+      # Android links GStreamer plugins statically and skips missing ones, so check the
+      # live-streaming elements really are in the app library for every ABI.
+      - name: Check live-streaming plugins
+        run: |
+          apk="${RUNNER_TEMP}/build/ForeView.apk"
+          for abi in arm64-v8a armeabi-v7a; do
+            lib=$(unzip -Z1 "$apk" | grep -E "^lib/${abi}/libForeView[^/]*\.so$" | head -n 1)
+            if [[ -z "$lib" ]]; then
+              echo "::error title=Live streaming::No ForeView library for ${abi} in the APK"
+              exit 1
+            fi
+            # Element descriptions from the rtmp2 and flv plugins. (Bare element names are
+            # not reliable markers: "flvmux" also appears in other plugins' tables.)
+            for marker in "RTMP sink element" "Muxes video/audio streams into a FLV stream"; do
+              if ! unzip -p "$apk" "$lib" | grep -aqF "$marker"; then
+                echo "::error title=Live streaming::'${marker}' not found in the ${abi} build (rtmp2/flv plugin missing)"
+                exit 1
+              fi
+            done
+          done
+          echo "::notice title=Live streaming::rtmp2sink and flvmux are linked into the APK (arm64-v8a, armeabi-v7a)"
 
       - name: Upload
         uses: actions/upload-artifact@v7

@@ -29,6 +29,8 @@ if(QGC_ENABLE_GST_VIDEOSTREAMING)
             GStreamerLogging.h
             GstAppSinkAdapter.cc
             GstAppSinkAdapter.h
+            GstRtmpStreamer.cc
+            GstRtmpStreamer.h
             GstVideoReceiver.cc
             GstVideoReceiver.h
     )

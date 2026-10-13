@@ -12,6 +12,7 @@
 #include "SubtitleWriter.h"
 #include "Vehicle.h"
 #include "VehicleLinkManager.h"
+#include "VideoLiveStreamer.h"
 #include "VideoReceiver.h"
 #include "VideoSettings.h"
 #include "QtMultimediaReceiver.h"
@@ -185,6 +186,18 @@ void VideoManager::init(QQuickWindow *mainWindow)
     (void) connect(_videoSettings->tcpUrl(), &Fact::rawValueChanged, this, &VideoManager::_videoSourceChanged);
     (void) connect(_videoSettings->aspectRatio(), &Fact::rawValueChanged, this, &VideoManager::aspectRatioChanged);
     (void) connect(_videoSettings->lowLatencyMode(), &Fact::rawValueChanged, this, [this](const QVariant &value) { Q_UNUSED(value); _restartAllVideos(); });
+    (void) connect(_videoSettings->liveStreamEnabled(), &Fact::rawValueChanged, this, [this](const QVariant &value) {
+        if (!value.toBool()) {
+            stopLiveStream();
+        }
+    });
+    (void) connect(_videoSettings->liveStreamUrl(), &Fact::rawValueChanged, this, [this]() {
+        // Follow URL edits while live (start() restarts on a new URL).
+        const VideoLiveStreamer *streamer = liveStreamer();
+        if (streamer && streamer->active()) {
+            startLiveStream();
+        }
+    });
     (void) connect(SettingsManager::instance()->appSettings()->gstDebugLevel(), &Fact::rawValueChanged, this, [](const QVariant &value) {
 #ifdef QGC_GST_STREAMING
         GStreamer::setDebugLevel(value.toInt());
@@ -369,6 +382,57 @@ void VideoManager::startRecording(const QString &videoFile)
         const QString streamName = (receiver->name() == QStringLiteral("videoContent")) ? "" : (receiver->name() + ".");
         const QString videoFileName = videoFileNameTemplate.arg(streamName);
         receiver->startRecording(videoFileName, fileFormat);
+    }
+}
+
+VideoLiveStreamer *VideoManager::liveStreamer() const
+{
+    for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
+        if (receiver->name() == QStringLiteral("videoContent")) {
+            return receiver->liveStreamer();
+        }
+    }
+    return nullptr;
+}
+
+bool VideoManager::isValidLiveStreamUrl(const QString &url)
+{
+    // rtmp[s]://host[:port]/application/streamkey
+    const QUrl parsed(url, QUrl::StrictMode);
+    const QString scheme = parsed.scheme().toLower();
+    if (!parsed.isValid() || ((scheme != QStringLiteral("rtmp")) && (scheme != QStringLiteral("rtmps"))) || parsed.host().isEmpty()) {
+        return false;
+    }
+    return parsed.path().split(QLatin1Char('/'), Qt::SkipEmptyParts).size() >= 2;
+}
+
+void VideoManager::startLiveStream()
+{
+    VideoLiveStreamer *streamer = liveStreamer();
+    if (!streamer) {
+        QGC::showAppMessage(tr("Live streaming is not available with the current video settings."));
+        return;
+    }
+
+    if (!_videoSettings->liveStreamEnabled()->rawValue().toBool()) {
+        return;
+    }
+
+    const QString url = _videoSettings->liveStreamUrl()->rawValue().toString().trimmed();
+    if (!isValidLiveStreamUrl(url)) {
+        streamer->stop();
+        QGC::showAppMessage(tr("Enter the RTMP URL in Settings > Video before going live, in the form rtmp://server/application/streamkey."));
+        return;
+    }
+
+    streamer->start(url);
+}
+
+void VideoManager::stopLiveStream()
+{
+    VideoLiveStreamer *streamer = liveStreamer();
+    if (streamer) {
+        streamer->stop();
     }
 }
 
@@ -993,6 +1057,9 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
     (void) _updateSettings(receiver);
 
     _videoReceivers.append(receiver);
+    if (receiver->liveStreamer()) {
+        emit liveStreamerChanged();
+    }
 
     if (hasVideo()) {
         _startReceiver(receiver);

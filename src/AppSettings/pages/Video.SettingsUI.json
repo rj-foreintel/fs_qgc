@@ -6,7 +6,8 @@
         "autoStreamConfig": "QGroundControl.videoManager.autoStreamConfigured",
         "sourceDisabled": "videoSource === QGroundControl.settingsManager.videoSettings.disabledVideoSource",
         "isStreamSource": "QGroundControl.videoManager.isStreamSource",
-        "isGST": "QGroundControl.videoManager.gstreamerEnabled"
+        "isGST": "QGroundControl.videoManager.gstreamerEnabled",
+        "liveStreamEnabled": "QGroundControl.settingsManager.videoSettings.liveStreamEnabled.rawValue"
     },
     "groups": [
         {
@@ -63,6 +64,21 @@
                 },
                 {
                     "setting": "videoSettings.forceVideoDecoder"
+                }
+            ]
+        },
+        {
+            "heading": "Live Streaming (RTMP)",
+            "headingDescription": "qsTr(\"Send the camera video to an RTMP server. Start and stop it from the LIVE indicator in the toolbar.\")",
+            "keywords": ["rtmp", "rtmps", "live", "go live", "broadcast", "restream", "stream key"],
+            "showWhen": "isGST && !sourceDisabled",
+            "controls": [
+                {
+                    "setting": "videoSettings.liveStreamEnabled"
+                },
+                {
+                    "setting": "videoSettings.liveStreamUrl",
+                    "showWhen": "liveStreamEnabled"
                 }
             ]
         },

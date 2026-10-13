@@ -33,6 +33,8 @@ public:
     DEFINE_SETTINGFACT(videoConversionElement)
     DEFINE_SETTINGFACT(disablePixelAspectRatio)
     DEFINE_SETTINGFACT(frameSmoothingEnabled)
+    DEFINE_SETTINGFACT(liveStreamEnabled)
+    DEFINE_SETTINGFACT(liveStreamUrl)
 
     Q_PROPERTY(bool     streamConfigured        READ streamConfigured       NOTIFY streamConfiguredChanged)
     Q_PROPERTY(QString  rtspVideoSource         READ rtspVideoSource        CONSTANT)
