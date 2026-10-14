@@ -9,6 +9,7 @@
 #include "QGCLoggingCategory.h"
 #include "QGCVideoStreamInfo.h"
 #include "SettingsManager.h"
+#include "SiyiCameraEncoding.h"
 #include "SubtitleWriter.h"
 #include "Vehicle.h"
 #include "VehicleLinkManager.h"
@@ -57,9 +58,15 @@ bool VideoManager::_shouldSkipGStreamerForUnitTests()
 VideoManager::VideoManager(QObject *parent)
     : QObject(parent)
     , _subtitleWriter(new SubtitleWriter(this))
+    , _siyiCameraEncoding(new SiyiCameraEncoding(this))
     , _videoSettings(SettingsManager::instance()->videoSettings())
 {
     qCDebug(VideoManagerLog) << this;
+
+    // The camera restarts its RTSP stream with the new codec; reconnect once it is back.
+    (void) connect(_siyiCameraEncoding, &SiyiCameraEncoding::switched, this, [this]() {
+        QTimer::singleShot(3000, this, [this]() { _restartAllVideos(); });
+    });
 
     (void) qRegisterMetaType<VideoReceiver::STATUS>("STATUS");
 
@@ -426,6 +433,23 @@ void VideoManager::startLiveStream()
     }
 
     streamer->start(url);
+}
+
+void VideoManager::switchCameraToH264()
+{
+    // The camera is the host serving the main video stream, e.g. rtsp://192.168.144.25:8554/main.264.
+    QString host;
+    for (const VideoReceiver *receiver : std::as_const(_videoReceivers)) {
+        if (receiver->name() == QStringLiteral("videoContent")) {
+            host = QUrl(receiver->uri()).host();
+            break;
+        }
+    }
+    if (host.isEmpty()) {
+        host = QUrl(_videoSettings->rtspUrl()->rawValue().toString()).host();
+    }
+
+    _siyiCameraEncoding->switchToH264(host);
 }
 
 void VideoManager::stopLiveStream()

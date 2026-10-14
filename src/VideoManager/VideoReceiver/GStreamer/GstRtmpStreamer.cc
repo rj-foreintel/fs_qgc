@@ -114,7 +114,7 @@ void GstRtmpStreamer::_pushLocked(GstBuffer *buffer, GstCaps *caps)
         _destroyPipeline(false);
         _failedCodec = codec;
         _failReason = tr("Live streaming needs H.264 video, but the camera is sending H.265. "
-                         "Set the camera's coding format to H.264.");
+                         "Tap Switch Camera to H.264, or set the camera's coding format to H.264.");
         return;
     }
 

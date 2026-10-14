@@ -5,6 +5,8 @@
 
 target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
+        SiyiCameraEncoding.cc
+        SiyiCameraEncoding.h
         SubtitleWriter.cc
         SubtitleWriter.h
         VideoManager.cc
