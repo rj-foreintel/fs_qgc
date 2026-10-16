@@ -20,6 +20,16 @@ ApplicationWindow {
     // The special casing for android prevents white bars from showing up on the edges of the screen with newer android versions
     flags:      Qt.Window | (ScreenTools.isAndroid ? Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : 0)
 
+    // Since Qt 6.9 ApplicationWindow pads its content by the safe area (status and navigation
+    // bars). In full screen those bars are hidden, but some Android devices (e.g. the SIYI MK15)
+    // keep reporting them, which left blank bars along the top and right edges. Use the whole
+    // screen when full screen; undefined restores Qt's default padding otherwise.
+    readonly property bool _fillScreen: ScreenTools.isAndroid && visibility === Window.FullScreen
+    topPadding:     _fillScreen ? 0 : undefined
+    bottomPadding:  _fillScreen ? 0 : undefined
+    leftPadding:    _fillScreen ? 0 : undefined
+    rightPadding:   _fillScreen ? 0 : undefined
+
     Component.onCompleted: {
         // Start the sequence of first run prompt(s)
         firstRunPromptManager.nextPrompt()

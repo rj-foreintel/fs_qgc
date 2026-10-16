@@ -20,6 +20,8 @@ Item {
     property bool _isLive:      _state === VideoLiveStreamer.Live
     property bool _isTrying:    _state === VideoLiveStreamer.WaitingForVideo || _state === VideoLiveStreamer.Connecting || _state === VideoLiveStreamer.Reconnecting
     property bool _isFailed:    _state === VideoLiveStreamer.Failed
+    property var  _siyi:        QGroundControl.videoManager.siyiCameraEncoding
+    property bool _cameraIsH265: _streamer !== null && _streamer.codec === "H.265"
 
     QGCPalette { id: qgcPal }
 
@@ -74,6 +76,22 @@ Item {
                     wrapMode:               Text.WordWrap
                     visible:                _settings.liveStreamUrl.rawValue === ""
                     text:                   qsTr("Set the RTMP URL in Settings > Video before going live.")
+                }
+
+                // SIYI cameras can be switched from H.265 to H.264 from here (RTMP needs H.264).
+                QGCButton {
+                    Layout.fillWidth:   true
+                    visible:            control._cameraIsH265 || (control._siyi && control._siyi.busy)
+                    enabled:            control._siyi && !control._siyi.busy
+                    text:               control._siyi && control._siyi.busy ? qsTr("Switching camera...") : qsTr("Switch Camera to H.264")
+                    onClicked:          QGroundControl.videoManager.switchCameraToH264()
+                }
+
+                QGCLabel {
+                    Layout.maximumWidth:    ScreenTools.defaultFontPixelWidth * 44
+                    wrapMode:               Text.WordWrap
+                    visible:                control._siyi && control._siyi.statusText !== "" && !control._isLive
+                    text:                   control._siyi ? control._siyi.statusText : ""
                 }
 
                 QGCButton {

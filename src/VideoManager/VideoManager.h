@@ -10,6 +10,7 @@
 #include <memory>
 
 class QQuickWindow;
+class SiyiCameraEncoding;
 class SubtitleWriter;
 class Vehicle;
 class VideoLiveStreamer;
@@ -23,6 +24,7 @@ class VideoManager : public QObject
     QML_UNCREATABLE("")
     Q_MOC_INCLUDE("Vehicle.h")
     Q_MOC_INCLUDE("VideoLiveStreamer.h")
+    Q_MOC_INCLUDE("SiyiCameraEncoding.h")
 
     Q_PROPERTY(bool     gstreamerEnabled        READ gstreamerEnabled                           CONSTANT)
     Q_PROPERTY(bool     qtmultimediaEnabled     READ qtmultimediaEnabled                        CONSTANT)
@@ -45,6 +47,8 @@ class VideoManager : public QObject
     Q_PROPERTY(QString  uvcVideoSourceID        READ uvcVideoSourceID                           NOTIFY uvcVideoSourceIDChanged)
     /// RTMP publisher for the main video stream; nullptr when the video backend cannot stream.
     Q_PROPERTY(VideoLiveStreamer *liveStreamer  READ liveStreamer                               NOTIFY liveStreamerChanged)
+    /// Switches SIYI cameras from H.265 to H.264 (needed for live streaming).
+    Q_PROPERTY(SiyiCameraEncoding *siyiCameraEncoding READ siyiCameraEncoding                   CONSTANT)
 
     friend class VideoManagerInitTest;
 
@@ -62,6 +66,8 @@ public:
     /// Starts sending the main video to the RTMP URL in Video settings (if live streaming is enabled).
     Q_INVOKABLE void startLiveStream();
     Q_INVOKABLE void stopLiveStream();
+    /// Switches the SIYI camera that serves the main video stream to H.264.
+    Q_INVOKABLE void switchCameraToH264();
 
     void init(QQuickWindow *mainWindow);
     void startGStreamerInit();
@@ -84,6 +90,7 @@ public:
     QString imageFile() const { return _imageFile; }
     QString uvcVideoSourceID() const { return _uvcVideoSourceID; }
     VideoLiveStreamer *liveStreamer() const;
+    SiyiCameraEncoding *siyiCameraEncoding() const { return _siyiCameraEncoding; }
     static bool isValidLiveStreamUrl(const QString &url);
     void setfullScreen(bool on);
     static bool gstreamerEnabled();
@@ -139,6 +146,7 @@ private:
 
     QList<VideoReceiver*> _videoReceivers;
     SubtitleWriter *_subtitleWriter = nullptr;
+    SiyiCameraEncoding *_siyiCameraEncoding = nullptr;
     VideoSettings *_videoSettings = nullptr;
     QQuickWindow *_mainWindow = nullptr;
     Vehicle *_activeVehicle = nullptr;
