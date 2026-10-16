@@ -4,18 +4,25 @@
 
 #include "QGCCorePlugin.h"
 
+class ForeViewCamera;
+class ForeViewMode;
 class QQmlApplicationEngine;
 
 /// Redirects qrc:/X to qrc:/Custom/X when ForeView ships its own version of that
-/// resource (logos, window icon). Everything else resolves to the stock QGC file.
+/// resource (logos, window icon, and the customer-mode QML overrides).
+/// Everything else resolves to the stock QGC file.
 class ForeViewOverrideInterceptor : public QQmlAbstractUrlInterceptor
 {
 public:
     QUrl intercept(const QUrl &url, QQmlAbstractUrlInterceptor::DataType type) final;
 };
 
-/// ForeView core plugin. Branding only: it keeps QGC's standard options,
-/// settings and flight-stack support, and swaps in ForeView artwork.
+/// ForeView core plugin.
+///
+/// ForeView starts in customer mode: a simplified Fly view and only the settings a customer
+/// needs. The full QGroundControl UI is Debug Mode, unlocked with the company password
+/// (ForeViewMode). QGC's own "advanced UI" switch follows Debug Mode and cannot be turned on
+/// any other way.
 class ForeViewPlugin : public QGCCorePlugin
 {
     Q_OBJECT
@@ -25,11 +32,19 @@ public:
 
     static QGCCorePlugin *instance();
 
+    void init() final;
     void cleanup() final;
     QQmlApplicationEngine *createQmlApplicationEngine(QObject *parent) final;
     QString stableDownloadLocation() const final { return QString(); }
+    void paletteOverride(const QString &colorName, QGCPalette::PaletteColorInfo_t &colorInfo) final;
+    void adjustSettingMetaData(const QString &settingsGroup, FactMetaData &metaData, bool &userVisible) final;
 
 private:
+    void _createObjects();
+    void _syncAdvancedUI();
+
     QQmlApplicationEngine *_qmlEngine = nullptr;
     ForeViewOverrideInterceptor *_interceptor = nullptr;
+    ForeViewMode *_mode = nullptr;
+    ForeViewCamera *_camera = nullptr;
 };

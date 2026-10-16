@@ -1,0 +1,14 @@
+# ForeView customer Fly view (qrc:/ForeView/Customer), imported by the FlyView.qml override.
+singleton FVTheme 1.0 FVTheme.qml
+CustomerFlyLayer 1.0 CustomerFlyLayer.qml
+FVActionButton 1.0 FVActionButton.qml
+FVCameraRail 1.0 FVCameraRail.qml
+FVCameraSheet 1.0 FVCameraSheet.qml
+FVChoiceButton 1.0 FVChoiceButton.qml
+FVIcon 1.0 FVIcon.qml
+FVLivePill 1.0 FVLivePill.qml
+FVRoundButton 1.0 FVRoundButton.qml
+FVSlideConfirm 1.0 FVSlideConfirm.qml
+FVTelemetryStrip 1.0 FVTelemetryStrip.qml
+FVTopBar 1.0 FVTopBar.qml
+FVUnlockDialog 1.0 FVUnlockDialog.qml

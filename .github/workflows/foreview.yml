@@ -27,8 +27,13 @@ permissions:
 
 env:
   # ForeView version shown in the app, installer and APK. Bump for each release.
-  FOREVIEW_VERSION: 0.1.0
+  FOREVIEW_VERSION: 0.2.0
   IS_STABLE_BUILD: 'true'
+  # Company password that unlocks Debug Mode (custom/CMakeLists.txt hashes it at configure
+  # time). Feature-branch builds fall back to a development password when the secret is
+  # missing; foreview-main release builds fail instead.
+  FOREVIEW_DEBUG_PASSWORD: ${{ secrets.FOREVIEW_DEBUG_PASSWORD }}
+  FOREVIEW_REQUIRE_DEBUG_PASSWORD: ${{ github.ref == 'refs/heads/foreview-main' }}
 
 jobs:
   linux:
