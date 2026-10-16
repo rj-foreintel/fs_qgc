@@ -159,6 +159,22 @@ Item {
             showSetEstimatorOrigin: _customerMode ? false : (_activeVehicle && !(_activeVehicle.sensorsPresentBits & MAVLinkEnums.MAV_SYS_STATUS_SENSOR_GPS))
         }
 
+        // Customer mode never shows QGC's guided-action confirmation (it lives in the hidden stock
+        // toolbar), so drop any that gets opened, e.g. by tapping a waypoint on the map.
+        Connections {
+            target: guidedActionsController
+            function onGuidedUIVisibleChanged() {
+                if (_customerMode && guidedActionsController.guidedUIVisible) {
+                    guidedActionsController.closeAll()
+                }
+            }
+        }
+
+        Connections {
+            target: ForeViewMode
+            function onDebugModeChanged() { guidedActionsController.closeAll() }
+        }
+
         CustomerFlyLayer {
             id:                 customerLayer
             anchors.fill:       parent

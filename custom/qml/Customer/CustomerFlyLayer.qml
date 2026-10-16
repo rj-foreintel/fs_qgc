@@ -213,7 +213,7 @@ Item {
         anchors.horizontalCenter:   parent.horizontalCenter
         anchors.top:                topBar.bottom
         anchors.topMargin:          FVTheme.margin
-        width:                      Math.min(warningRow.implicitWidth + FVTheme.unit * 1.6, parent.width - FVTheme.unit * 20)
+        width:                      warningRow.width + FVTheme.unit * 1.6
         height:                     FVTheme.unit * 2.2
         radius:                     FVTheme.unit * 0.6
         color:                      root._warning && root._warning.critical ? FVTheme.danger : FVTheme.warn
@@ -234,6 +234,7 @@ Item {
             QGCLabel {
                 id:                     warningLabel
                 anchors.verticalCenter: parent.verticalCenter
+                width:                  Math.min(implicitWidth, root.width - FVTheme.unit * 24)
                 text:                   root._warning ? root._warning.text : ""
                 color:                  root._warning && root._warning.critical ? FVTheme.text : FVTheme.warnInk
                 font.bold:              true

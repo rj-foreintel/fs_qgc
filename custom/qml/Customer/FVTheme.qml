@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 
 import QGroundControl
+import QGroundControl.Controls
 
 // Colours and sizes of ForeView's customer Fly view.
 //
