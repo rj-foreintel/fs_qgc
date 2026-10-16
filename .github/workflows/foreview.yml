@@ -93,19 +93,25 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           status=0
-          timeout 45 "${RUNNER_TEMP}/build/Release/ForeView" > qml-smoke.log 2>&1 || status=$?
+          timeout 45 "${RUNNER_TEMP}/build/Release/ForeView" --logging:ForeView.Plugin > qml-smoke.log 2>&1 || status=$?
           if [[ $status -ne 124 ]]; then
             echo "::error title=ForeView QML smoke test::ForeView exited with status ${status} before the 45 s timeout"
             tail -n 40 qml-smoke.log
             exit 1
           fi
-          if grep -E "qrc:/(ForeView|Custom)/" qml-smoke.log > foreview-qml.log; then
+          # The plugin logs each stock QML file it replaces; the customer Fly view must be one of them.
+          if ! grep -q "Using ForeView override.*FlyView/FlyView.qml" qml-smoke.log; then
+            echo "::error title=ForeView QML smoke test::The ForeView Fly view override was not loaded"
+            tail -n 40 qml-smoke.log
+            exit 1
+          fi
+          if grep -E "qrc:/(ForeView|Custom)/" qml-smoke.log | grep -v "Using ForeView override" > foreview-qml.log; then
             while IFS= read -r line; do
               echo "::error title=ForeView QML::${line}"
             done < <(head -n 30 foreview-qml.log)
             exit 1
           fi
-          echo "::notice title=ForeView QML smoke test::Customer mode QML loaded without errors"
+          echo "::notice title=ForeView QML smoke test::Customer Fly view loaded without QML errors"
 
       - name: Create AppImage
         id: appimage

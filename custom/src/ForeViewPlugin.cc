@@ -4,12 +4,15 @@
 #include "FactMetaData.h"
 #include "ForeViewCamera.h"
 #include "ForeViewMode.h"
+#include "QGCLoggingCategory.h"
 
 #include <QtCore/QApplicationStatic>
 #include <QtCore/QFile>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQml/QQmlEngine>
 #include <QtQml/qqml.h>
+
+QGC_LOGGING_CATEGORY(ForeViewPluginLog, "ForeView.Plugin")
 
 Q_APPLICATION_STATIC(ForeViewPlugin, _foreViewPluginInstance);
 
@@ -157,5 +160,6 @@ QUrl ForeViewOverrideInterceptor::intercept(const QUrl &url, QQmlAbstractUrlInte
 
     QUrl result(url);
     result.setPath(overridePath);
+    qCDebug(ForeViewPluginLog) << "Using ForeView override" << result.toString();
     return result;
 }
