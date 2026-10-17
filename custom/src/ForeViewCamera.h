@@ -77,6 +77,7 @@ private:
     bool _updateHost();
     bool _viewingSubStream() const;
     void _setConnected(bool isConnected);
+    void _requestState();
     static bool _parseFrame(const QByteArray &datagram, quint8 &cmdId, QByteArray &data);
 
     QUdpSocket *_socket = nullptr;
@@ -107,8 +108,14 @@ private:
     static constexpr quint8 kCmdPhoto = 0x0C;
     static constexpr quint8 kCmdGetImageType = 0x10;
     static constexpr quint8 kCmdSetImageType = 0x11;
+    static constexpr quint8 kCmdGetThermalPalette = 0x1A;
     static constexpr quint8 kCmdSetThermalPalette = 0x1B;
+    static constexpr quint8 kCmdGetThermalGain = 0x37;
     static constexpr quint8 kCmdSetThermalGain = 0x38;
+
+    // 0x37/0x38 thermal gain values
+    static constexpr quint8 kGainLow = 0;     // 50 to 550 C ("Hot objects")
+    static constexpr quint8 kGainHigh = 1;    // -20 to 150 C ("Everyday")
 
     // 0x0C photo function values
     static constexpr quint8 kPhotoTake = 0;

@@ -101,6 +101,7 @@ Rectangle {
     function _navigateTo(pageIndex, sectionIndex) {
         var entry = settingsPagesModel.get(pageIndex)
         if (!entry || entry.name === "Divider") return
+        if (!_pageAllowed(entry.nameKey ?? entry.name)) return
 
         var url = entry.url
         _selectedSectionIndex = sectionIndex

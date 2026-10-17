@@ -63,8 +63,14 @@ Item {
         toolstrip.adjustToolInset(newToolInset)
     }
 
+    // Called when the pilot taps a critical vehicle message to see the rest. The stock status
+    // drawer has Force Arm and vehicle setup buttons, so customer mode shows its own message list.
     function dropMainStatusIndicatorTool() {
-        toolbar.dropMainStatusIndicatorTool();
+        if (_customerMode) {
+            customerLayer.showMessages()
+        } else {
+            toolbar.dropMainStatusIndicatorTool();
+        }
     }
 
     QGCToolInsets {

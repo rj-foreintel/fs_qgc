@@ -19,8 +19,10 @@ Q_APPLICATION_STATIC(ForeViewPlugin, _foreViewPluginInstance);
 ForeViewPlugin::ForeViewPlugin(QObject *parent)
     : QGCCorePlugin(parent)
 {
-    // Customer mode until the company password unlocks Debug Mode.
-    _showAdvancedUI = false;
+    // QGC's "advanced UI" stays on in both modes: it only adds options to the Plan view (camera
+    // actions at mission start, "Show all values"), which customers are meant to have. Customer
+    // mode is enforced by ForeView's own screens instead (see ForeViewMode and custom/qml).
+    _showAdvancedUI = true;
 }
 
 QGCCorePlugin *ForeViewPlugin::instance()
@@ -37,19 +39,15 @@ void ForeViewPlugin::_createObjects()
     _mode = new ForeViewMode(this);
     _camera = new ForeViewCamera(this);
 
-    (void) connect(_mode, &ForeViewMode::debugModeChanged, this, &ForeViewPlugin::_syncAdvancedUI);
-
-    // QGC can also turn advanced UI on from its own dialogs (e.g. tapping the version number).
-    // Advanced UI must only ever follow Debug Mode, so undo any other change.
-    (void) connect(this, &QGCCorePlugin::showAdvancedUIChanged, this, &ForeViewPlugin::_syncAdvancedUI);
+    // QGC's own "Advanced Mode" dialog could switch advanced UI off; keep it on.
+    (void) connect(this, &QGCCorePlugin::showAdvancedUIChanged, this, &ForeViewPlugin::_keepAdvancedUI);
 }
 
-void ForeViewPlugin::_syncAdvancedUI()
+void ForeViewPlugin::_keepAdvancedUI()
 {
-    const bool debugMode = _mode && _mode->debugMode();
-    if (_showAdvancedUI != debugMode) {
-        _showAdvancedUI = debugMode;
-        emit showAdvancedUIChanged(debugMode);
+    if (!_showAdvancedUI) {
+        _showAdvancedUI = true;
+        emit showAdvancedUIChanged(true);
     }
 }
 

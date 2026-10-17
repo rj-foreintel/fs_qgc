@@ -21,6 +21,11 @@ Item {
 
     readonly property real topBarHeight: topBar.height
 
+    /// Opens the list of messages from the drone (used for critical vehicle messages).
+    function showMessages() {
+        topBar.showMessages()
+    }
+
     property var    _vehicle:       QGroundControl.multiVehicleManager.activeVehicle
     property bool   _armed:         _vehicle ? _vehicle.armed : false
     property bool   _flying:        _vehicle ? _vehicle.flying : false
@@ -134,6 +139,9 @@ Item {
         }
         if (!isNaN(_batteryPercent) && _batteryPercent < 30 && _flying) {
             return { text: qsTr("Battery low (%1%). Bring the drone home soon.").arg(Math.round(_batteryPercent)), critical: false }
+        }
+        if (!_armed && _vehicle.prearmError !== "") {
+            return { text: qsTr("Cannot arm: %1").arg(_vehicle.prearmError), critical: false }
         }
         if (_gpsLock < 3 && !_flying) {
             return { text: qsTr("Waiting for GPS (%1 satellites)").arg(_gpsCount), critical: false }

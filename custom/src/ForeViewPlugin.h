@@ -19,10 +19,10 @@ public:
 
 /// ForeView core plugin.
 ///
-/// ForeView starts in customer mode: a simplified Fly view and only the settings a customer
-/// needs. The full QGroundControl UI is Debug Mode, unlocked with the company password
-/// (ForeViewMode). QGC's own "advanced UI" switch follows Debug Mode and cannot be turned on
-/// any other way.
+/// ForeView starts in customer mode: a simplified Fly view, a view menu without Analyze and
+/// vehicle setup, and only the settings pages a customer needs. The full QGroundControl UI is
+/// Debug Mode, unlocked with the company password (ForeViewMode). QGC's own "advanced UI"
+/// switch is kept on in both modes so the Plan view offers every option.
 class ForeViewPlugin : public QGCCorePlugin
 {
     Q_OBJECT
@@ -41,7 +41,7 @@ public:
 
 private:
     void _createObjects();
-    void _syncAdvancedUI();
+    void _keepAdvancedUI();
 
     QQmlApplicationEngine *_qmlEngine = nullptr;
     ForeViewOverrideInterceptor *_interceptor = nullptr;

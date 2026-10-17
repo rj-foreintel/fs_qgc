@@ -28,7 +28,7 @@ QGCPopupDialog {
         preventClose = true
     }
 
-    Component.onCompleted: passwordField.forceActiveFocus()
+    onOpened: passwordField.forceActiveFocus()
 
     ColumnLayout {
         width:      ScreenTools.defaultFontPixelWidth * 40
@@ -44,6 +44,8 @@ QGCPopupDialog {
             id:                 passwordField
             Layout.fillWidth:   true
             echoMode:           TextInput.Password
+            // No auto-capitals, suggestions or saved text from the on-screen keyboard (Android).
+            inputMethodHints:   Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase | Qt.ImhHiddenText
             placeholderText:    qsTr("Password")
             enabled:            ForeViewMode.lockoutSeconds === 0
             onAccepted:         root._accept()

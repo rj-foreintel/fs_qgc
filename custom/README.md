@@ -28,17 +28,22 @@ ForeView always starts in **customer mode**:
 
 - The Fly view is replaced by `qml/Customer/CustomerFlyLayer.qml`: status, flight mode
   (shown only; modes are changed with the switches on the remote), GPS, RC, battery, LIVE,
-  telemetry, and Home / Land / Pause / Mission buttons that each need a slide to confirm.
-  Tapping the map does nothing.
+  telemetry, warnings (signal lost, battery, pre-arm failures, GPS), and Home / Land /
+  Pause / Mission buttons that each need a slide to confirm. Tapping the map does nothing.
+  Tapping the status opens the drone's messages; QGC's status panel (with Force Arm and
+  vehicle setup) is never shown.
 - Camera buttons talk to the SIYI camera directly over SIYI's SDK (UDP port 37260 on the
-  host in the RTSP URL), so customers do not need the SIYI FPV app.
-- The view menu has Fly, Plan, Settings and Close. Plan is the full stock Plan view.
+  host in the RTSP URL), so customers do not need the SIYI FPV app. Each time the camera
+  (re)connects, ForeView reads back its zoom, colour/thermal view, thermal colours and range.
+- The view menu has Fly, Plan, Settings and Close. Plan is the full stock Plan view: QGC's
+  "advanced UI" switch is kept on in both modes because it only adds Plan options (camera
+  actions at mission start, "Show all values").
 - Settings shows General, Plan View, Maps, Video and Help only.
 
 **Debug Mode** is the full QGroundControl UI. To unlock it, tap "ForeView" in the top-left
 of the Fly view seven times quickly and enter the company password. It switches off again
-from the view menu ("Exit Debug Mode") and on every app restart. QGC's own "Advanced Mode"
-switch cannot turn it on.
+from the view menu ("Exit Debug Mode") and on every app restart. Five wrong passwords lock
+the prompt for 30 seconds.
 
 ### The password
 
@@ -58,8 +63,8 @@ from `master`, compare each with its original and carry upstream changes across:
 
 | ForeView copy | Stock original | What changed |
 |---|---|---|
-| `qml/overrides/FlyView.qml` | `src/FlyView/FlyView.qml` | Customer layer added; stock toolbar and widgets hidden in customer mode; no guided actions from the map |
-| `qml/overrides/SelectViewDropdown.qml` | `src/Toolbar/SelectViewDropdown.qml` | Configure only in Debug Mode; "Exit Debug Mode"; advanced-mode toggle removed |
+| `qml/overrides/FlyView.qml` | `src/FlyView/FlyView.qml` | Customer layer added; stock toolbar and widgets hidden in customer mode; no guided actions from the map; critical-message "more" opens the customer message list |
+| `qml/overrides/SelectViewDropdown.qml` | `src/Toolbar/SelectViewDropdown.qml` | Analyze and Configure only in Debug Mode; "Exit Debug Mode"; advanced-mode toggle removed |
 | `qml/overrides/AppSettings.qml` | `src/QmlControls/AppSettings.qml` | Customer mode lists only the customer settings pages |
 
 To replace a stock QGC image, add a file to `custom.qrc` under the

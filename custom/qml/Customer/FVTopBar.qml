@@ -33,6 +33,10 @@ Rectangle {
         if (!_vehicle) {
             return false
         }
+        // A pre-arm failure the drone has just reported always means "not ready".
+        if (!_vehicle.armed && _vehicle.prearmError !== "") {
+            return false
+        }
         if (_vehicle.healthAndArmingCheckReport.supported) {
             return _vehicle.healthAndArmingCheckReport.canArm
         }
@@ -51,11 +55,17 @@ Rectangle {
         return _ready ? qsTr("Ready to fly") : qsTr("Not ready")
     }
 
+    // Amber (not ready) needs dark text; every other status colour takes white text.
+    readonly property bool _statusIsWarning: _vehicle !== null && !_commLost && !_vehicle.armed && !_ready
+
     readonly property color _statusColor: {
         if (!_vehicle)              return FVTheme.idle
         if (_commLost)              return FVTheme.danger
-        if (_vehicle.armed)         return FVTheme.ok
-        return _ready ? FVTheme.ok : FVTheme.warn
+        return _statusIsWarning ? FVTheme.warn : FVTheme.ok
+    }
+
+    function showMessages() {
+        mainWindow.showIndicatorDrawer(messagesPage, statusButton)
     }
 
     function _batteryColor() {
@@ -130,7 +140,7 @@ Rectangle {
             implicitWidth:      statusLabel.implicitWidth + FVTheme.unit * 1.4
             focusPolicy:        Qt.NoFocus
             enabled:            root._vehicle !== null
-            onClicked:          mainWindow.showIndicatorDrawer(messagesPage, statusButton)
+            onClicked:          root.showMessages()
 
             background: Rectangle {
                 radius: height / 2
@@ -140,7 +150,7 @@ Rectangle {
             contentItem: QGCLabel {
                 id:                     statusLabel
                 text:                   root._statusText
-                color:                  root._statusColor === FVTheme.warn ? FVTheme.warnInk : FVTheme.text
+                color:                  root._statusIsWarning ? FVTheme.warnInk : FVTheme.text
                 font.bold:              true
                 horizontalAlignment:    Text.AlignHCenter
                 verticalAlignment:      Text.AlignVCenter

@@ -166,9 +166,7 @@ void ForeViewCamera::_handleFrame(quint8 cmdId, const QByteArray &data)
             if (newModel != _model) {
                 _model = newModel;
                 qCDebug(ForeViewCameraLog) << "Camera model" << _model << "at" << _host.toString();
-                if (thermalSupported()) {
-                    _send(kCmdGetImageType, QByteArray());
-                }
+                _requestState();
                 emit connectedChanged();
             }
         }
@@ -212,6 +210,31 @@ void ForeViewCamera::_handleFrame(quint8 cmdId, const QByteArray &data)
         }
         break;
 
+    case kCmdGetThermalPalette:
+    case kCmdSetThermalPalette:
+        if (!data.isEmpty()) {
+            const int palette = static_cast<quint8>(data[0]);
+            if ((palette <= 11) && (palette != _thermalPalette)) {
+                _thermalPalette = palette;
+                emit thermalPaletteChanged();
+            }
+        }
+        break;
+
+    case kCmdGetThermalGain:
+    case kCmdSetThermalGain:
+        if (!data.isEmpty()) {
+            const quint8 gain = static_cast<quint8>(data[0]);
+            if ((gain == kGainLow) || (gain == kGainHigh)) {
+                const bool highRange = (gain == kGainLow);
+                if (highRange != _thermalHighRange) {
+                    _thermalHighRange = highRange;
+                    emit thermalHighRangeChanged();
+                }
+            }
+        }
+        break;
+
     case kCmdGetImageType:
     case kCmdSetImageType:
         if (!data.isEmpty()) {
@@ -234,11 +257,28 @@ void ForeViewCamera::_setConnected(bool isConnected)
 {
     if (isConnected != _connected) {
         _connected = isConnected;
-        if (!isConnected) {
+        if (isConnected) {
+            // The camera may have been power-cycled or changed from another app meanwhile.
+            _requestState();
+        } else {
             _recordStatus = 0;
             emit recordingChanged();
         }
         emit connectedChanged();
+    }
+}
+
+void ForeViewCamera::_requestState()
+{
+    // "Stop zooming" is answered with the current zoom, so the zoom shown matches the camera.
+    _send(kCmdManualZoom, static_cast<quint8>(0));
+
+    if (thermalSupported()) {
+        // The camera answers with its current image type, thermal colours and range. Cameras
+        // that do not answer keep the last values chosen in ForeView.
+        _send(kCmdGetImageType, QByteArray());
+        _send(kCmdGetThermalPalette, QByteArray());
+        _send(kCmdGetThermalGain, QByteArray());
     }
 }
 
@@ -330,8 +370,7 @@ void ForeViewCamera::setThermalHighRange(bool highRange)
         return;
     }
 
-    // SIYI gain: 0 = low gain (50 to 550 C), 1 = high gain (-20 to 150 C).
-    _send(kCmdSetThermalGain, static_cast<quint8>(highRange ? 0 : 1));
+    _send(kCmdSetThermalGain, highRange ? kGainLow : kGainHigh);
 
     if (highRange != _thermalHighRange) {
         _thermalHighRange = highRange;
