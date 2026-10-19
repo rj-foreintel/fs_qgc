@@ -9,6 +9,7 @@
     <!-- Customer mode / Debug Mode versions of stock QML files (see custom/README.md) -->
     <qresource prefix="/Custom/qml/QGroundControl">
         <file alias="FlyView/FlyView.qml">qml/overrides/FlyView.qml</file>
+        <file alias="FlyView/FlightDisplayViewVideo.qml">qml/overrides/FlightDisplayViewVideo.qml</file>
         <file alias="Toolbar/SelectViewDropdown.qml">qml/overrides/SelectViewDropdown.qml</file>
         <file alias="Controls/AppSettings.qml">qml/overrides/AppSettings.qml</file>
     </qresource>

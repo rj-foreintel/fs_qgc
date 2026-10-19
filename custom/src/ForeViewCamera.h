@@ -26,6 +26,9 @@ class ForeViewCamera : public QObject
     Q_PROPERTY(bool     thermalView         READ thermalView        NOTIFY thermalViewChanged)
     Q_PROPERTY(int      thermalPalette      READ thermalPalette     NOTIFY thermalPaletteChanged)
     Q_PROPERTY(bool     thermalHighRange    READ thermalHighRange   NOTIFY thermalHighRangeChanged)
+    /// Colour and thermal shown side by side: the RTSP stream from Settings > Video shows colour
+    /// and the camera's other stream (video1 <-> video2) shows thermal.
+    Q_PROPERTY(bool     sideBySide          READ sideBySide         NOTIFY sideBySideChanged)
 
 public:
     explicit ForeViewCamera(QObject *parent = nullptr);
@@ -39,6 +42,9 @@ public:
     bool thermalView() const { return _thermalView; }
     int thermalPalette() const { return _thermalPalette; }
     bool thermalHighRange() const { return _thermalHighRange; }
+    bool sideBySide() const { return _sideBySide; }
+    /// RTSP URL of the second stream while side by side is on, otherwise empty.
+    QString secondaryStreamUrl() const { return _sideBySide ? otherStreamUrl(_rtspUrl()) : QString(); }
 
     Q_INVOKABLE void takePhoto();
     Q_INVOKABLE void toggleRecording();
@@ -47,8 +53,10 @@ public:
     Q_INVOKABLE void zoomOut();
     Q_INVOKABLE void zoomStop();
     Q_INVOKABLE void center();
-    /// true: thermal sensor on the video the pilot sees, false: colour sensor.
+    /// true: thermal sensor on the video the pilot sees, false: colour sensor. Ends side by side.
     Q_INVOKABLE void setThermalView(bool thermal);
+    /// Thermal cameras only; needs an RTSP URL ending in /video1 or /video2.
+    Q_INVOKABLE void setSideBySide(bool on);
     /// SIYI palette value: 0 White hot, 2 Sepia, 3 Ironbow, 4 Rainbow, 5 Night, 6 Aurora,
     /// 7 Red hot, 8 Jungle, 9 Medical, 10 Black hot, 11 Glory hot.
     Q_INVOKABLE void setThermalPalette(int palette);
@@ -57,6 +65,8 @@ public:
 
     /// Model name from the two-character SIYI hardware ID (exposed for tests).
     static QString modelFromHardwareId(char first, char second);
+    /// The camera's other stream: .../video1 <-> .../video2. Empty for any other URL.
+    static QString otherStreamUrl(const QString &rtspUrl);
 
 signals:
     void connectedChanged();
@@ -65,6 +75,8 @@ signals:
     void thermalViewChanged();
     void thermalPaletteChanged();
     void thermalHighRangeChanged();
+    /// Also emitted when the second stream's URL changes.
+    void sideBySideChanged();
     /// Short message for the pilot, e.g. "Photo saved" or "No SD card in the camera".
     void notice(const QString &text, bool error);
 
@@ -76,6 +88,9 @@ private:
     void _send(quint8 cmdId, quint8 value) { _send(cmdId, QByteArray(1, static_cast<char>(value))); }
     bool _updateHost();
     bool _viewingSubStream() const;
+    static QString _rtspUrl();
+    void _applyThermalView(bool thermal);
+    void _rtspUrlChanged();
     void _setConnected(bool isConnected);
     void _requestState();
     static bool _parseFrame(const QByteArray &datagram, quint8 &cmdId, QByteArray &data);
@@ -94,6 +109,8 @@ private:
     bool _thermalView = false;
     int _thermalPalette = 0;
     bool _thermalHighRange = false;
+    bool _sideBySide = false;
+    QString _secondaryStreamUrl;
 
     static constexpr quint16 kPort = 37260;
     static constexpr int kPollIntervalMs = 2000;

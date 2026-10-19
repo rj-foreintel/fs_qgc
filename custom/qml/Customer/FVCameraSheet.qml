@@ -90,7 +90,7 @@ Rectangle {
             visible:            ForeViewCamera.thermalSupported
 
             QGCLabel {
-                text:           qsTr("MAIN VIEW")
+                text:           qsTr("VIEW")
                 color:          FVTheme.textDim
                 font.bold:      true
                 font.pointSize: FVTheme.smallFont
@@ -103,15 +103,23 @@ Rectangle {
                 FVChoiceButton {
                     Layout.fillWidth:   true
                     text:               qsTr("Colour")
-                    selected:           !ForeViewCamera.thermalView
+                    selected:           !ForeViewCamera.sideBySide && !ForeViewCamera.thermalView
                     onClicked:          ForeViewCamera.setThermalView(false)
                 }
 
                 FVChoiceButton {
                     Layout.fillWidth:   true
                     text:               qsTr("Thermal")
-                    selected:           ForeViewCamera.thermalView
+                    selected:           !ForeViewCamera.sideBySide && ForeViewCamera.thermalView
                     onClicked:          ForeViewCamera.setThermalView(true)
+                }
+
+                // Colour left, thermal right: plays both of the camera's video streams.
+                FVChoiceButton {
+                    Layout.fillWidth:   true
+                    text:               qsTr("Side by side")
+                    selected:           ForeViewCamera.sideBySide
+                    onClicked:          ForeViewCamera.setSideBySide(true)
                 }
             }
 
@@ -139,7 +147,7 @@ Rectangle {
                         selected:           ForeViewCamera.thermalPalette === modelData.value
                         onClicked: {
                             ForeViewCamera.setThermalPalette(modelData.value)
-                            if (!ForeViewCamera.thermalView) {
+                            if (!ForeViewCamera.thermalView && !ForeViewCamera.sideBySide) {
                                 ForeViewCamera.setThermalView(true)
                             }
                         }

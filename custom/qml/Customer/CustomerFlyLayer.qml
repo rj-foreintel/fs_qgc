@@ -201,6 +201,9 @@ Item {
                     if (!ForeViewCamera.thermalSupported) {
                         return ForeViewCamera.model
                     }
+                    if (ForeViewCamera.sideBySide) {
+                        return qsTr("%1 · Colour + Thermal").arg(ForeViewCamera.model)
+                    }
                     return ForeViewCamera.thermalView ? qsTr("%1 · Thermal").arg(ForeViewCamera.model)
                                                       : qsTr("%1 · Colour").arg(ForeViewCamera.model)
                 }

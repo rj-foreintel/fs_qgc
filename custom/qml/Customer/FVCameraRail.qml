@@ -48,15 +48,23 @@ Rectangle {
             FVChoiceButton {
                 width:      FVTheme.unit * 3
                 text:       qsTr("RGB")
-                selected:   !ForeViewCamera.thermalView
+                selected:   !ForeViewCamera.sideBySide && !ForeViewCamera.thermalView
                 onClicked:  ForeViewCamera.setThermalView(false)
             }
 
             FVChoiceButton {
                 width:      FVTheme.unit * 3
                 text:       qsTr("IR")
-                selected:   ForeViewCamera.thermalView
+                selected:   !ForeViewCamera.sideBySide && ForeViewCamera.thermalView
                 onClicked:  ForeViewCamera.setThermalView(true)
+            }
+
+            // RGB and IR side by side
+            FVChoiceButton {
+                width:      FVTheme.unit * 3
+                text:       qsTr("Both")
+                selected:   ForeViewCamera.sideBySide
+                onClicked:  ForeViewCamera.setSideBySide(true)
             }
         }
 

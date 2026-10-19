@@ -1,5 +1,6 @@
 #include "ForeViewCamera.h"
 
+#include "Fact.h"
 #include "QGCLoggingCategory.h"
 #include "SettingsManager.h"
 #include "SiyiCameraEncoding.h"
@@ -33,6 +34,7 @@ ForeViewCamera::ForeViewCamera(QObject *parent)
     settings.endGroup();
 
     (void) connect(_socket, &QUdpSocket::readyRead, this, &ForeViewCamera::_onReadyRead);
+    (void) connect(SettingsManager::instance()->videoSettings()->rtspUrl(), &Fact::rawValueChanged, this, &ForeViewCamera::_rtspUrlChanged);
 
     _pollTimer.setInterval(kPollIntervalMs);
     (void) connect(&_pollTimer, &QTimer::timeout, this, &ForeViewCamera::_poll);
@@ -63,10 +65,32 @@ QString ForeViewCamera::modelFromHardwareId(char first, char second)
     return QStringLiteral("SIYI");
 }
 
+QString ForeViewCamera::otherStreamUrl(const QString &rtspUrl)
+{
+    QUrl url(rtspUrl.trimmed());
+    QString path = url.path();
+    if (!url.isValid() || (url.scheme().toLower() != QStringLiteral("rtsp"))) {
+        return QString();
+    }
+    if (path.endsWith(QStringLiteral("/video1"))) {
+        path.replace(path.size() - 1, 1, QLatin1Char('2'));
+    } else if (path.endsWith(QStringLiteral("/video2"))) {
+        path.replace(path.size() - 1, 1, QLatin1Char('1'));
+    } else {
+        return QString();
+    }
+    url.setPath(path);
+    return url.toString();
+}
+
+QString ForeViewCamera::_rtspUrl()
+{
+    return SettingsManager::instance()->videoSettings()->rtspUrl()->rawValue().toString();
+}
+
 bool ForeViewCamera::_updateHost()
 {
-    const QString rtspUrl = SettingsManager::instance()->videoSettings()->rtspUrl()->rawValue().toString();
-    QHostAddress host(QUrl(rtspUrl.trimmed()).host());
+    QHostAddress host(QUrl(_rtspUrl().trimmed()).host());
     if (host.isNull()) {
         host = QHostAddress(QString::fromLatin1(kDefaultCameraHost));
     }
@@ -88,7 +112,7 @@ bool ForeViewCamera::_viewingSubStream() const
 {
     // The ZT6 serves its main stream as .../video1 and its sub stream as .../video2. When the pilot
     // watches the sub stream, the sensor shown is the opposite of the "main" one in the image type.
-    const QString path = QUrl(SettingsManager::instance()->videoSettings()->rtspUrl()->rawValue().toString().trimmed()).path();
+    const QString path = QUrl(_rtspUrl().trimmed()).path();
     return path.endsWith(QStringLiteral("/video2"));
 }
 
@@ -166,6 +190,9 @@ void ForeViewCamera::_handleFrame(quint8 cmdId, const QByteArray &data)
             if (newModel != _model) {
                 _model = newModel;
                 qCDebug(ForeViewCameraLog) << "Camera model" << _model << "at" << _host.toString();
+                if (!thermalSupported()) {
+                    setSideBySide(false);
+                }
                 _requestState();
                 emit connectedChanged();
             }
@@ -337,6 +364,52 @@ void ForeViewCamera::setThermalView(bool thermal)
         return;
     }
 
+    setSideBySide(false);
+    _applyThermalView(thermal);
+}
+
+void ForeViewCamera::setSideBySide(bool on)
+{
+    if (on && !thermalSupported()) {
+        return;
+    }
+    if (on && otherStreamUrl(_rtspUrl()).isEmpty()) {
+        emit notice(tr("Side by side needs the camera's RTSP address ending in /video1 or /video2 (Settings > Video)."), true);
+        return;
+    }
+
+    if (on) {
+        // Colour on the stream the pilot watches, thermal on the other one.
+        _applyThermalView(false);
+    }
+
+    if (on != _sideBySide) {
+        _sideBySide = on;
+        _secondaryStreamUrl = secondaryStreamUrl();
+        emit sideBySideChanged();
+    }
+}
+
+void ForeViewCamera::_rtspUrlChanged()
+{
+    if (!_sideBySide) {
+        return;
+    }
+    if (otherStreamUrl(_rtspUrl()).isEmpty()) {
+        setSideBySide(false);
+        return;
+    }
+
+    _applyThermalView(false);
+    const QString url = secondaryStreamUrl();
+    if (url != _secondaryStreamUrl) {
+        _secondaryStreamUrl = url;
+        emit sideBySideChanged();
+    }
+}
+
+void ForeViewCamera::_applyThermalView(bool thermal)
+{
     const bool mainThermal = thermal != _viewingSubStream();
     _send(kCmdSetImageType, static_cast<quint8>(mainThermal ? kImageMainThermalSubZoom : kImageMainZoomSubThermal));
 

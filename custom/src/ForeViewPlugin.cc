@@ -6,6 +6,7 @@
 #include "ForeViewCamera.h"
 #include "ForeViewMode.h"
 #include "QGCLoggingCategory.h"
+#include "VideoManager.h"
 
 #include <QtCore/QApplicationStatic>
 #include <QtCore/QFile>
@@ -39,6 +40,11 @@ void ForeViewPlugin::_createObjects()
 
     _mode = new ForeViewMode(this);
     _camera = new ForeViewCamera(this);
+
+    // ZT6/ZT30 side by side: the camera's second stream plays in QGC's thermal video output.
+    (void) connect(_camera, &ForeViewCamera::sideBySideChanged, this, [this]() {
+        VideoManager::instance()->setSecondaryStreamUri(_camera->secondaryStreamUrl());
+    });
 
     // QGC's own "Advanced Mode" dialog could switch advanced UI off; keep it on.
     (void) connect(this, &QGCCorePlugin::showAdvancedUIChanged, this, &ForeViewPlugin::_keepAdvancedUI);
