@@ -260,13 +260,22 @@ Item {
         }
     }
 
-    // Flight actions
-    Column {
+    // Flight actions. On short screens they wrap into a 2 x 2 block (and shrink only if that still
+    // does not fit) so they end above the map/video PIP (bottom left) or the telemetry strip.
+    Grid {
         id:                 actionColumn
         anchors.left:       parent.left
         anchors.top:        sensorChip.visible ? sensorChip.bottom : topBar.bottom
         anchors.margins:    FVTheme.margin
         spacing:            FVTheme.unit * 0.45
+        flow:               Grid.TopToBottom
+        rows:               _available >= _buttonHeight * 4 + spacing * 3 ? 4 : 2
+        transformOrigin:    Item.TopLeft
+        scale:              height > 0 ? Math.max(0.6, Math.min(1, _available / height)) : 1
+
+        readonly property real _buttonHeight:   FVTheme.unit * 3.3     // FVActionButton implicitHeight
+        readonly property real _pipInset:       root.pipView && root.pipView.visible ? root.pipView.bottomEdgeLeftInset : 0
+        readonly property real _available:      root.height - Math.max(_pipInset, telemetryStrip.height + FVTheme.margin) - y - FVTheme.margin
 
         FVActionButton {
             text:       qsTr("Home")
