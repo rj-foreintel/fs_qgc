@@ -16,11 +16,19 @@ the fork without touching our changes.
 | Android launcher icon, splash and adaptive-icon background | `android/res/` |
 | Logo swap and QML override mechanism, ForeView palette, light "Outdoor" colours by default | `src/ForeViewPlugin.*` |
 | Customer mode / Debug Mode switch and password check | `src/ForeViewMode.*`, `CMakeLists.txt` |
-| SIYI camera control (photo, video, zoom, centre, colour/thermal, thermal colours and range) | `src/ForeViewCamera.*` |
+| SIYI camera control (photo, video, zoom, centre, colour/thermal/side by side, thermal colours and range) | `src/ForeViewCamera.*` |
 | Customer Fly view | `qml/Customer/` |
 | Stock QML files replaced for customer mode | `qml/overrides/` (see below) |
 
 ArduPilot and PX4 support are left unchanged, and Debug Mode is the full stock QGC UI.
+
+Two small changes outside `custom/` (keep them when merging upstream QGC):
+
+- `src/VideoManager/VideoManager.*`: `setSecondaryStreamUri()` plays a second stream in QGC's
+  thermal video output when the vehicle announces no thermal stream (used for side by side).
+- `src/VideoManager/VideoReceiver/GStreamer/GstVideoReceiver.cc`: the RTSP jitter buffer is
+  200 ms and keeps late packets unless Low Latency Mode is on (25 ms, drops late packets).
+  The short buffer smeared the SIYI A8 mini picture whenever the radio link delayed packets.
 
 ## Customer mode and Debug Mode
 
@@ -30,11 +38,20 @@ ForeView always starts in **customer mode**:
   (shown only; modes are changed with the switches on the remote), GPS, RC, battery, LIVE,
   telemetry, warnings (signal lost, battery, pre-arm failures, GPS), and Home / Land /
   Pause / Mission buttons that each need a slide to confirm. Tapping the map does nothing.
-  Tapping the status opens the drone's messages; QGC's status panel (with Force Arm and
-  vehicle setup) is never shown.
+  Tapping the status opens the drone's messages (live, with a Clear button); QGC's status
+  panel (with Force Arm and vehicle setup) is never shown.
+- The battery shows voltage by default and takes its colour and low/critical warnings from
+  the flight controller's charge state (ArduPilot `BATT_LOW_VOLT` / `BATT_CRT_VOLT`). The
+  remaining % is ArduPilot's estimate from mAh used since power-on against `BATT_CAPACITY`
+  and assumes a full pack at power-on, so it is shown only in the tap-for-details panel
+  (or in the bar if the customer picks it there).
 - Camera buttons talk to the SIYI camera directly over SIYI's SDK (UDP port 37260 on the
   host in the RTSP URL), so customers do not need the SIYI FPV app. Each time the camera
   (re)connects, ForeView reads back its zoom, colour/thermal view, thermal colours and range.
+- ZT6/ZT30 "Side by side" (camera sheet, or "Both" on the camera rail) sets the stream being
+  watched to colour and plays the camera's other stream (`video1` <-> `video2` in the RTSP
+  URL) as thermal in the right half. It needs an RTSP URL ending in `/video1` or `/video2`,
+  is off after a restart, and the LIVE stream still sends only the main (left) video.
 - The view menu has Fly, Plan, Settings and Close. Plan is the full stock Plan view: QGC's
   "advanced UI" switch is kept on in both modes because it only adds Plan options (camera
   actions at mission start, "Show all values").
@@ -66,6 +83,7 @@ from `master`, compare each with its original and carry upstream changes across:
 | `qml/overrides/FlyView.qml` | `src/FlyView/FlyView.qml` | Customer layer added; stock toolbar and widgets hidden in customer mode; no guided actions from the map; critical-message "more" opens the customer message list |
 | `qml/overrides/SelectViewDropdown.qml` | `src/Toolbar/SelectViewDropdown.qml` | Analyze and Configure only in Debug Mode; "Exit Debug Mode"; advanced-mode toggle removed |
 | `qml/overrides/AppSettings.qml` | `src/QmlControls/AppSettings.qml` | Customer mode lists only the customer settings pages |
+| `qml/overrides/FlightDisplayViewVideo.qml` | `src/FlyView/FlightDisplayViewVideo.qml` | Side by side: main video in the left half, second stream (thermal output) in the right half |
 
 To replace a stock QGC image, add a file to `custom.qrc` under the
 `/Custom` prefix with the same path as the original. For example,
