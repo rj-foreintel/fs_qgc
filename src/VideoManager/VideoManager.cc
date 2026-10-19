@@ -1034,6 +1034,9 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
         if (!receiver->isThermal()) {
             _decoding = active;
             emit decodingChanged();
+        } else {
+            _secondaryDecoding = active;
+            emit secondaryDecodingChanged();
         }
     });
 
@@ -1060,6 +1063,9 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
         if (!receiver->isThermal()) {
             _videoSize = size;
             emit videoSizeChanged();
+        } else {
+            _secondaryVideoSize = size;
+            emit secondaryVideoSizeChanged();
         }
     });
 
@@ -1087,6 +1093,31 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
 
     if (hasVideo()) {
         _startReceiver(receiver);
+    }
+}
+
+void VideoManager::setSecondaryStreamUri(const QString &uri)
+{
+    if (uri == _secondaryStreamUri) {
+        return;
+    }
+
+    _secondaryStreamUri = uri;
+    emit secondaryStreamUriChanged();
+
+    for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
+        // A thermal stream announced by the vehicle's camera takes priority.
+        if (!receiver->isThermal() || receiver->videoStreamInfo()) {
+            continue;
+        }
+
+        if (_updateVideoUri(receiver, uri)) {
+            if (uri.isEmpty()) {
+                _stopReceiver(receiver);
+            } else if (hasVideo()) {
+                _restartVideo(receiver);
+            }
+        }
     }
 }
 
