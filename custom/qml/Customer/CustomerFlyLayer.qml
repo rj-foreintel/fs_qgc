@@ -124,6 +124,15 @@ Item {
     // ---- Warning shown under the top bar (most important first) ----
     property var _battery:          _vehicle && _vehicle.batteries.count > 0 ? _vehicle.batteries.get(0) : null
     property real _batteryPercent:  _battery ? _battery.percentRemaining.rawValue : NaN
+    property real _batteryVoltage:  _battery ? _battery.voltage.rawValue : NaN
+    // Flight controller's battery failsafe level (MAV_BATTERY_CHARGE_STATE): 2 low, 3+ critical.
+    // It follows BATT_LOW_VOLT / BATT_CRT_VOLT, so it is right even when the % estimate is not.
+    property int  _batteryState:    _battery ? _battery.chargeState.rawValue : 0
+    property bool _batteryStateKnown: _batteryState >= 1 && _batteryState <= 6
+    property bool _batteryCritical: _batteryStateKnown ? _batteryState >= 3 : (!isNaN(_batteryPercent) && _batteryPercent < 15)
+    property bool _batteryLow:      _batteryStateKnown ? _batteryState === 2 : (!isNaN(_batteryPercent) && _batteryPercent < 30)
+    property string _batteryText:   isNaN(_batteryVoltage) ? (isNaN(_batteryPercent) ? "" : qsTr("%1%").arg(Math.round(_batteryPercent)))
+                                                           : qsTr("%1 V").arg(_batteryVoltage.toFixed(1))
     property int  _gpsLock:         _vehicle ? _vehicle.gps.lock.rawValue : 0
     property int  _gpsCount:        _vehicle ? _vehicle.gps.count.rawValue : 0
 
@@ -134,11 +143,11 @@ Item {
         if (_commLost) {
             return { text: qsTr("Lost contact with the drone. It will follow its failsafe (usually return home)."), critical: true }
         }
-        if (!isNaN(_batteryPercent) && _batteryPercent < 15) {
-            return { text: qsTr("Battery critical (%1%). Land or return home now.").arg(Math.round(_batteryPercent)), critical: true }
+        if (_batteryCritical) {
+            return { text: qsTr("Battery critical (%1). Land or return home now.").arg(_batteryText), critical: true }
         }
-        if (!isNaN(_batteryPercent) && _batteryPercent < 30 && _flying) {
-            return { text: qsTr("Battery low (%1%). Bring the drone home soon.").arg(Math.round(_batteryPercent)), critical: false }
+        if (_batteryLow) {
+            return { text: qsTr("Battery low (%1). Bring the drone home soon.").arg(_batteryText), critical: false }
         }
         if (!_armed && _vehicle.prearmError !== "") {
             return { text: qsTr("Cannot arm: %1").arg(_vehicle.prearmError), critical: false }

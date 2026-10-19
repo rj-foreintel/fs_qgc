@@ -21,8 +21,6 @@ Rectangle {
     property var    _vehicle:           QGroundControl.multiVehicleManager.activeVehicle
     property bool   _commLost:          _vehicle ? _vehicle.vehicleLinkManager.communicationLost : false
     property var    _battery:           _vehicle && _vehicle.batteries.count > 0 ? _vehicle.batteries.get(0) : null
-    property real   _batteryPercent:    _battery ? _battery.percentRemaining.rawValue : NaN
-    property real   _batterySeconds:    _battery ? _battery.timeRemaining.rawValue : NaN
     property int    _gpsCount:          _vehicle ? _vehicle.gps.count.rawValue : 0
     property int    _gpsLock:           _vehicle ? _vehicle.gps.lock.rawValue : 0
     property int    _rssi:              _vehicle ? _vehicle.rcRSSI.rawValue : 0
@@ -66,13 +64,6 @@ Rectangle {
 
     function showMessages() {
         mainWindow.showIndicatorDrawer(messagesPage, statusButton)
-    }
-
-    function _batteryColor() {
-        if (isNaN(_batteryPercent)) return FVTheme.text
-        if (_batteryPercent < 15)   return FVTheme.danger
-        if (_batteryPercent < 30)   return FVTheme.warn
-        return FVTheme.good
     }
 
     // ---- ForeView name: menu on one tap, Debug Mode prompt on seven quick taps ----
@@ -239,43 +230,9 @@ Rectangle {
             }
         }
 
-        Row {
+        FVBattery {
             Layout.alignment:   Qt.AlignVCenter
-            spacing:            FVTheme.unit * 0.3
-            visible:            root._battery !== null
-
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                width:                  FVTheme.unit * 1.4
-                height:                 FVTheme.unit * 0.8
-                radius:                 FVTheme.unit * 0.15
-                color:                  "transparent"
-                border.width:           2
-                border.color:           FVTheme.text
-
-                Rectangle {
-                    x:      3
-                    y:      3
-                    height: parent.height - 6
-                    width:  isNaN(root._batteryPercent) ? 0 : Math.max(0, (parent.width - 6) * Math.min(100, root._batteryPercent) / 100)
-                    radius: 1
-                    color:  root._batteryColor()
-                }
-            }
-
-            QGCLabel {
-                anchors.verticalCenter: parent.verticalCenter
-                text:                   isNaN(root._batteryPercent) ? "--" : qsTr("%1%").arg(Math.round(root._batteryPercent))
-                color:                  root._batteryColor()
-                font.bold:              true
-            }
-
-            QGCLabel {
-                anchors.verticalCenter: parent.verticalCenter
-                text:                   qsTr("%1 min").arg(Math.floor(root._batterySeconds / 60))
-                color:                  FVTheme.textDim
-                visible:                !isNaN(root._batterySeconds) && root._batterySeconds > 0
-            }
+            battery:            root._battery
         }
 
         FVLivePill {

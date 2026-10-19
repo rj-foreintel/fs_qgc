@@ -1,6 +1,7 @@
 #include "ForeViewPlugin.h"
 
 #include "AppSettings.h"
+#include "BatteryIndicatorSettings.h"
 #include "FactMetaData.h"
 #include "ForeViewCamera.h"
 #include "ForeViewMode.h"
@@ -132,6 +133,12 @@ void ForeViewPlugin::adjustSettingMetaData(const QString &settingsGroup, FactMet
     // Light "Outdoor" colours by default on every platform: easier to read in sunlight.
     if ((settingsGroup == AppSettings::settingsGroup) && (metaData.name() == AppSettings::indoorPaletteName)) {
         metaData.setRawDefaultValue(0);
+    }
+
+    // Battery shows voltage by default: ArduPilot's remaining % is estimated from mAh used since
+    // power-on and reads ~100% on a part-charged pack. Customers can change this in the battery panel.
+    if ((settingsGroup == BatteryIndicatorSettings::settingsGroup) && (metaData.name() == BatteryIndicatorSettings::valueDisplayName)) {
+        metaData.setRawDefaultValue(1);
     }
 }
 
