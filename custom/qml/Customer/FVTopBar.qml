@@ -267,15 +267,55 @@ Rectangle {
         ToolIndicatorPage {
             contentComponent: Component {
                 ColumnLayout {
-                    spacing: ScreenTools.defaultFontPixelHeight / 2
+                    id:         messagesColumn
+                    spacing:    ScreenTools.defaultFontPixelHeight / 2
 
-                    QGCLabel {
-                        text:       qsTr("Messages from the drone")
-                        font.bold:  true
+                    property var _vehicle: QGroundControl.multiVehicleManager.activeVehicle
+
+                    function _format(text) {
+                        const pal = QGroundControl.globalPalette
+                        return text.replace(/<#[EI]>/g, "color: " + pal.warningText + ";")
+                                   .replace(/<#N>/g, "color: " + pal.text + ";")
+                    }
+
+                    Component.onCompleted: {
+                        if (_vehicle) {
+                            messageText.text = _format(_vehicle.formattedMessages)
+                            _vehicle.resetAllMessages()     // marks them as read
+                        }
+                    }
+
+                    // Newest first, as in QGC's own message list.
+                    Connections {
+                        target: messagesColumn._vehicle
+                        function onNewFormattedMessage(formattedMessage) {
+                            messageText.insert(0, messagesColumn._format(formattedMessage))
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth:   true
+                        spacing:            ScreenTools.defaultFontPixelWidth * 2
+
+                        QGCLabel {
+                            Layout.fillWidth:   true
+                            text:               qsTr("Messages from the drone")
+                            font.bold:          true
+                        }
+
+                        QGCButton {
+                            text:       qsTr("Clear")
+                            enabled:    messagesColumn._vehicle !== null && messageText.length > 0
+                            onClicked: {
+                                messagesColumn._vehicle.clearMessages()
+                                messageText.text = ""
+                            }
+                        }
                     }
 
                     // Plain list: links in messages (e.g. to parameters) are not followed in customer mode.
                     TextArea {
+                        id:                     messageText
                         Layout.preferredWidth:  ScreenTools.defaultFontPixelWidth * 50
                         readOnly:               true
                         textFormat:             TextEdit.RichText
@@ -284,16 +324,6 @@ Rectangle {
                         color:                  QGroundControl.globalPalette.text
                         placeholderText:        qsTr("No messages")
                         placeholderTextColor:   QGroundControl.globalPalette.text
-                        text: {
-                            const vehicle = QGroundControl.multiVehicleManager.activeVehicle
-                            if (!vehicle) {
-                                return ""
-                            }
-                            const pal = QGroundControl.globalPalette
-                            return vehicle.formattedMessages
-                                .replace(/<#[EI]>/g, "color: " + pal.warningText + ";")
-                                .replace(/<#N>/g, "color: " + pal.text + ";")
-                        }
                     }
                 }
             }
