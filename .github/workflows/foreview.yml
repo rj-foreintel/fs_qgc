@@ -27,8 +27,13 @@ permissions:
 
 env:
   # ForeView version shown in the app, installer and APK. Bump for each release.
-  FOREVIEW_VERSION: 0.1.0
+  FOREVIEW_VERSION: 0.2.0
   IS_STABLE_BUILD: 'true'
+  # Company password that unlocks Debug Mode (custom/CMakeLists.txt hashes it at configure
+  # time). Feature-branch builds fall back to a development password when the secret is
+  # missing; foreview-main release builds fail instead.
+  FOREVIEW_DEBUG_PASSWORD: ${{ secrets.FOREVIEW_DEBUG_PASSWORD }}
+  FOREVIEW_REQUIRE_DEBUG_PASSWORD: ${{ github.ref == 'refs/heads/foreview-main' }}
 
 jobs:
   linux:
@@ -79,6 +84,36 @@ jobs:
         uses: ./.github/actions/verify-executable
         with:
           binary-path: ${{ runner.temp }}/build/Release/ForeView
+
+      # Customer mode replaces stock QML at runtime (custom/qml). Start the app headless for a
+      # while and fail if any ForeView QML file reports an error, or if the app does not stay up.
+      - name: QML smoke test
+        working-directory: ${{ runner.temp }}
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          status=0
+          timeout 45 "${RUNNER_TEMP}/build/Release/ForeView" --logging:ForeView.Plugin > qml-smoke.log 2>&1 || status=$?
+          if [[ $status -ne 124 ]]; then
+            echo "::error title=ForeView QML smoke test::ForeView exited with status ${status} before the 45 s timeout"
+            tail -n 40 qml-smoke.log
+            exit 1
+          fi
+          # The plugin logs each stock QML file it replaces; the Fly view and video overrides must be loaded.
+          for override in FlyView/FlyView.qml FlyView/FlightDisplayViewVideo.qml; do
+            if ! grep -q "Using ForeView override.*${override}" qml-smoke.log; then
+              echo "::error title=ForeView QML smoke test::The ForeView override ${override} was not loaded"
+              tail -n 40 qml-smoke.log
+              exit 1
+            fi
+          done
+          if grep -E "qrc:/(ForeView|Custom)/" qml-smoke.log | grep -v "Using ForeView override" > foreview-qml.log; then
+            while IFS= read -r line; do
+              echo "::error title=ForeView QML::${line}"
+            done < <(head -n 30 foreview-qml.log)
+            exit 1
+          fi
+          echo "::notice title=ForeView QML smoke test::Customer Fly view loaded without QML errors"
 
       - name: Create AppImage
         id: appimage

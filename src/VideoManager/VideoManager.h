@@ -49,6 +49,11 @@ class VideoManager : public QObject
     Q_PROPERTY(VideoLiveStreamer *liveStreamer  READ liveStreamer                               NOTIFY liveStreamerChanged)
     /// Switches SIYI cameras from H.265 to H.264 (needed for live streaming).
     Q_PROPERTY(SiyiCameraEncoding *siyiCameraEncoding READ siyiCameraEncoding                   CONSTANT)
+    /// Second stream played in the "thermalVideo" output when the vehicle announces no thermal
+    /// stream (set by custom builds, e.g. to show two camera streams side by side). Empty: none.
+    Q_PROPERTY(QString  secondaryStreamUri      READ secondaryStreamUri                         NOTIFY secondaryStreamUriChanged)
+    Q_PROPERTY(bool     secondaryDecoding       READ secondaryDecoding                          NOTIFY secondaryDecodingChanged)
+    Q_PROPERTY(QSize    secondaryVideoSize      READ secondaryVideoSize                         NOTIFY secondaryVideoSizeChanged)
 
     friend class VideoManagerInitTest;
 
@@ -91,6 +96,10 @@ public:
     QString uvcVideoSourceID() const { return _uvcVideoSourceID; }
     VideoLiveStreamer *liveStreamer() const;
     SiyiCameraEncoding *siyiCameraEncoding() const { return _siyiCameraEncoding; }
+    QString secondaryStreamUri() const { return _secondaryStreamUri; }
+    bool secondaryDecoding() const { return _secondaryDecoding; }
+    QSize secondaryVideoSize() const { return _secondaryVideoSize; }
+    void setSecondaryStreamUri(const QString &uri);
     static bool isValidLiveStreamUrl(const QString &url);
     void setfullScreen(bool on);
     static bool gstreamerEnabled();
@@ -110,6 +119,9 @@ signals:
     void liveStreamerChanged();
     void recordingChanged(bool recording);
     void recordingStarted(const QString &filename);
+    void secondaryDecodingChanged();
+    void secondaryStreamUriChanged();
+    void secondaryVideoSizeChanged();
     void streamingChanged();
     void uvcVideoSourceIDChanged();
     void videoSizeChanged();
@@ -162,7 +174,10 @@ private:
     QAtomicInteger<bool> _decoding = false;
     QAtomicInteger<bool> _recording = false;
     QAtomicInteger<bool> _streaming = false;
+    QAtomicInteger<bool> _secondaryDecoding = false;
     QSize _videoSize;
+    QSize _secondaryVideoSize;
+    QString _secondaryStreamUri;
     QString _imageFile;
     QString _uvcVideoSourceID;
 

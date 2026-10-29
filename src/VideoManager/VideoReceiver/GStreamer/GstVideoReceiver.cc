@@ -796,13 +796,17 @@ GstElement *GstVideoReceiver::_makeSource(const QString &input)
             cleanUrl.setUserInfo(QString());
             const QByteArray cleanLocation = cleanUrl.toString().toUtf8();
 
+            // Low Latency Mode keeps a 25 ms jitter buffer and drops late packets. Otherwise give
+            // packets on lossy radio links time to arrive: a dropped packet corrupts the picture
+            // (smearing/blur) until the next key frame.
+            const bool lowLatencySource = lowLatency();
             g_object_set(source,
                          "location", cleanLocation.constData(),
-                         "latency", 25,
+                         "latency", lowLatencySource ? 25 : 200,
                          "do-rtcp", TRUE,
                          "tcp-timeout", G_GUINT64_CONSTANT(5000000),
                          "udp-reconnect", TRUE,
-                         "drop-on-latency", TRUE,
+                         "drop-on-latency", lowLatencySource ? TRUE : FALSE,
                          "retry", 3,
                          nullptr);
 

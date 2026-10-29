@@ -14,9 +14,76 @@ the fork without touching our changes.
 | Windows exe icon and installer header | `deploy/windows/` |
 | Linux desktop icon | `res/icons/ForeView_256.png`, `res/icons/ForeView.svg` |
 | Android launcher icon, splash and adaptive-icon background | `android/res/` |
-| Logo swap mechanism | `src/ForeViewPlugin.*` |
+| Logo swap and QML override mechanism, ForeView palette, light "Outdoor" colours by default | `src/ForeViewPlugin.*` |
+| Customer mode / Debug Mode switch and password check | `src/ForeViewMode.*`, `CMakeLists.txt` |
+| SIYI camera control (photo, video, zoom, centre, colour/thermal/side by side, thermal colours and range) | `src/ForeViewCamera.*` |
+| Customer Fly view | `qml/Customer/` |
+| Stock QML files replaced for customer mode | `qml/overrides/` (see below) |
 
-ArduPilot and PX4 support and the full stock QGC UI are left unchanged.
+ArduPilot and PX4 support are left unchanged, and Debug Mode is the full stock QGC UI.
+
+Two small changes outside `custom/` (keep them when merging upstream QGC):
+
+- `src/VideoManager/VideoManager.*`: `setSecondaryStreamUri()` plays a second stream in QGC's
+  thermal video output when the vehicle announces no thermal stream (used for side by side).
+- `src/VideoManager/VideoReceiver/GStreamer/GstVideoReceiver.cc`: the RTSP jitter buffer is
+  200 ms and keeps late packets unless Low Latency Mode is on (25 ms, drops late packets).
+  The short buffer smeared the SIYI A8 mini picture whenever the radio link delayed packets.
+
+## Customer mode and Debug Mode
+
+ForeView always starts in **customer mode**:
+
+- The Fly view is replaced by `qml/Customer/CustomerFlyLayer.qml`: status, flight mode
+  (shown only; modes are changed with the switches on the remote), GPS, RC, battery, LIVE,
+  telemetry, warnings (signal lost, battery, pre-arm failures, GPS), and Home / Land /
+  Pause / Mission buttons that each need a slide to confirm. Tapping the map does nothing.
+  Tapping the status opens the drone's messages (live, with a Clear button); QGC's status
+  panel (with Force Arm and vehicle setup) is never shown.
+- The battery shows voltage by default and takes its colour and low/critical warnings from
+  the flight controller's charge state (ArduPilot `BATT_LOW_VOLT` / `BATT_CRT_VOLT`). The
+  remaining % is ArduPilot's estimate from mAh used since power-on against `BATT_CAPACITY`
+  and assumes a full pack at power-on, so it is shown only in the tap-for-details panel
+  (or in the bar if the customer picks it there).
+- Camera buttons talk to the SIYI camera directly over SIYI's SDK (UDP port 37260 on the
+  host in the RTSP URL), so customers do not need the SIYI FPV app. Each time the camera
+  (re)connects, ForeView reads back its zoom, colour/thermal view, thermal colours and range.
+- ZT6/ZT30 "Side by side" (camera sheet, or "Both" on the camera rail) sets the stream being
+  watched to colour and plays the camera's other stream (`video1` <-> `video2` in the RTSP
+  URL) as thermal in the right half. It needs an RTSP URL ending in `/video1` or `/video2`,
+  is off after a restart, and the LIVE stream still sends only the main (left) video.
+- The view menu has Fly, Plan, Settings and Close. Plan is the full stock Plan view: QGC's
+  "advanced UI" switch is kept on in both modes because it only adds Plan options (camera
+  actions at mission start, "Show all values").
+- Settings shows General, Plan View, Maps, Video and Help only.
+
+**Debug Mode** is the full QGroundControl UI. To unlock it, tap "ForeView" in the top-left
+of the Fly view seven times quickly and enter the company password. It switches off again
+from the view menu ("Exit Debug Mode") and on every app restart. Five wrong passwords lock
+the prompt for 30 seconds.
+
+### The password
+
+The password is given to CMake as the `FOREVIEW_DEBUG_PASSWORD` environment variable; CI
+takes it from the repository secret of the same name. CMake stores only a random salt and a
+stretched SHA-256 hash in the app (`ForeViewDebugPassword.h` in the build folder), never the
+password. To change it, change the secret and rebuild.
+
+Without the variable, local and feature-branch builds use the development password
+`foreview-dev` and CMake prints a warning. `foreview-main` builds fail without the secret,
+so a release can never ship with the development password.
+
+### Replaced stock QML files
+
+These are copies of stock QGC files with small ForeView changes. When merging a newer QGC
+from `master`, compare each with its original and carry upstream changes across:
+
+| ForeView copy | Stock original | What changed |
+|---|---|---|
+| `qml/overrides/FlyView.qml` | `src/FlyView/FlyView.qml` | Customer layer added; stock toolbar and widgets hidden in customer mode; no guided actions from the map; critical-message "more" opens the customer message list |
+| `qml/overrides/SelectViewDropdown.qml` | `src/Toolbar/SelectViewDropdown.qml` | Analyze and Configure only in Debug Mode; "Exit Debug Mode"; advanced-mode toggle removed |
+| `qml/overrides/AppSettings.qml` | `src/QmlControls/AppSettings.qml` | Customer mode lists only the customer settings pages |
+| `qml/overrides/FlightDisplayViewVideo.qml` | `src/FlyView/FlightDisplayViewVideo.qml` | Side by side: main video in the left half, second stream (thermal output) in the right half |
 
 To replace a stock QGC image, add a file to `custom.qrc` under the
 `/Custom` prefix with the same path as the original. For example,

@@ -6,4 +6,49 @@
         <file alias="QGCLogoWhite.svg">res/QGCLogoWhite.svg</file>
         <file alias="qgroundcontrol.ico">res/icons/ForeView.ico</file>
     </qresource>
+    <!-- Customer mode / Debug Mode versions of stock QML files (see custom/README.md) -->
+    <qresource prefix="/Custom/qml/QGroundControl">
+        <file alias="FlyView/FlyView.qml">qml/overrides/FlyView.qml</file>
+        <file alias="FlyView/FlightDisplayViewVideo.qml">qml/overrides/FlightDisplayViewVideo.qml</file>
+        <file alias="Toolbar/SelectViewDropdown.qml">qml/overrides/SelectViewDropdown.qml</file>
+        <file alias="Controls/AppSettings.qml">qml/overrides/AppSettings.qml</file>
+    </qresource>
+    <!-- Customer Fly view, imported as "qrc:/ForeView/Customer" -->
+    <qresource prefix="/ForeView/Customer">
+        <file alias="CustomerFlyLayer.qml">qml/Customer/CustomerFlyLayer.qml</file>
+        <file alias="FVActionButton.qml">qml/Customer/FVActionButton.qml</file>
+        <file alias="FVCameraRail.qml">qml/Customer/FVCameraRail.qml</file>
+        <file alias="FVCameraSheet.qml">qml/Customer/FVCameraSheet.qml</file>
+        <file alias="FVChoiceButton.qml">qml/Customer/FVChoiceButton.qml</file>
+        <file alias="FVIcon.qml">qml/Customer/FVIcon.qml</file>
+        <file alias="FVLivePill.qml">qml/Customer/FVLivePill.qml</file>
+        <file alias="FVRoundButton.qml">qml/Customer/FVRoundButton.qml</file>
+        <file alias="FVSlideConfirm.qml">qml/Customer/FVSlideConfirm.qml</file>
+        <file alias="FVTelemetryStrip.qml">qml/Customer/FVTelemetryStrip.qml</file>
+        <file alias="FVTheme.qml">qml/Customer/FVTheme.qml</file>
+        <file alias="FVBattery.qml">qml/Customer/FVBattery.qml</file>
+        <file alias="FVTopBar.qml">qml/Customer/FVTopBar.qml</file>
+        <file alias="FVUnlockDialog.qml">qml/Customer/FVUnlockDialog.qml</file>
+        <file alias="qmldir">qml/Customer/qmldir</file>
+    </qresource>
+    <qresource prefix="/ForeView/res">
+        <file alias="center.svg">res/foreview/center.svg</file>
+        <file alias="check.svg">res/foreview/check.svg</file>
+        <file alias="chevron.svg">res/foreview/chevron.svg</file>
+        <file alias="close.svg">res/foreview/close.svg</file>
+        <file alias="gear.svg">res/foreview/gear.svg</file>
+        <file alias="gps.svg">res/foreview/gps.svg</file>
+        <file alias="home.svg">res/foreview/home.svg</file>
+        <file alias="land.svg">res/foreview/land.svg</file>
+        <file alias="lock.svg">res/foreview/lock.svg</file>
+        <file alias="menu.svg">res/foreview/menu.svg</file>
+        <file alias="minus.svg">res/foreview/minus.svg</file>
+        <file alias="mission.svg">res/foreview/mission.svg</file>
+        <file alias="pause.svg">res/foreview/pause.svg</file>
+        <file alias="photo.svg">res/foreview/photo.svg</file>
+        <file alias="plus.svg">res/foreview/plus.svg</file>
+        <file alias="sliders.svg">res/foreview/sliders.svg</file>
+        <file alias="video.svg">res/foreview/video.svg</file>
+        <file alias="warning.svg">res/foreview/warning.svg</file>
+    </qresource>
 </RCC>
