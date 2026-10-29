@@ -339,6 +339,7 @@ Item {
         anchors.leftMargin:     root.pipView && root.pipView.visible ? root.pipView.x + root.pipView.width + FVTheme.margin : FVTheme.margin
         anchors.right:          parent.right
         anchors.rightMargin:    cameraRail.width * cameraRail.scale + FVTheme.margin * 2
+        onPositionCopied:       toast.show(qsTr("Position copied"), false)
     }
 
     FVSlideConfirm {
