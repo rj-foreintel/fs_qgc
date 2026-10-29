@@ -16,19 +16,29 @@ the fork without touching our changes.
 | Android launcher icon, splash and adaptive-icon background | `android/res/` |
 | Logo swap and QML override mechanism, ForeView palette, light "Outdoor" colours by default | `src/ForeViewPlugin.*` |
 | Customer mode / Debug Mode switch and password check | `src/ForeViewMode.*`, `CMakeLists.txt` |
+| "Not connected · Tap to connect" and auto-connect retries in customer mode | `src/ForeViewLinks.*` |
+| Android start-up screen (app icon + "Powered by Foreintel") | `android/res/drawable*/`, `tools/make_splash.py` |
 | SIYI camera control (photo, video, zoom, centre, colour/thermal/side by side, thermal colours and range) | `src/ForeViewCamera.*` |
 | Customer Fly view | `qml/Customer/` |
 | Stock QML files replaced for customer mode | `qml/overrides/` (see below) |
 
 ArduPilot and PX4 support are left unchanged, and Debug Mode is the full stock QGC UI.
 
-Two small changes outside `custom/` (keep them when merging upstream QGC):
+Changes outside `custom/` (keep them when merging upstream QGC):
 
 - `src/VideoManager/VideoManager.*`: `setSecondaryStreamUri()` plays a second stream in QGC's
   thermal video output when the vehicle announces no thermal stream (used for side by side).
 - `src/VideoManager/VideoReceiver/GStreamer/GstVideoReceiver.cc`: the RTSP jitter buffer is
   200 ms and keeps late packets unless Low Latency Mode is on (25 ms, drops late packets).
   The short buffer smeared the SIYI A8 mini picture whenever the radio link delayed packets.
+  The same file also holds frames back until the first key frame when decoding starts (no grey
+  blocks at start-up; gives up after 3 s), and applies the new RTSP transport setting.
+- `src/Settings/Video.SettingsGroup.json`, `VideoSettings.*`, `src/AppSettings/pages/Video.SettingsUI.json`,
+  `VideoReceiver.h`, `VideoManager.cc`: "RTSP transport" (Automatic / UDP / TCP) in Settings > Video.
+- `src/VideoManager/VideoReceiver/VideoLiveStreamer.h`, `GstRtmpStreamer.*`: camera rate, queued video
+  and "upload too slow" for the LIVE panel.
+- `src/Comms/UDPLink.*`: a UDP port that cannot be bound is retried every 2 s instead of leaving the
+  link dead until restart (e.g. port still held by another app at start-up).
 
 ## Customer mode and Debug Mode
 
@@ -40,6 +50,13 @@ ForeView always starts in **customer mode**:
   Pause / Mission buttons that each need a slide to confirm. Tapping the map does nothing.
   Tapping the status opens the drone's messages (live, with a Clear button); QGC's status
   panel (with Force Arm and vehicle setup) is never shown.
+- The telemetry strip shows height, distance, speed, climb, flight time (from arming, as in stock
+  QGC) and the drone's latitude / longitude (tap to copy). Tapping the GPS count shows fix, HDOP,
+  VDOP and position.
+- With no drone connected the status reads "Not connected · Tap to connect": tapping connects the
+  saved links that have "Automatically Connect on Start" (or the only saved link). In customer
+  mode those links are also retried every 5 s while no drone is connected (TCP links are probed
+  first so a failed retry shows no error).
 - The battery shows voltage by default and takes its colour and low/critical warnings from
   the flight controller's charge state (ArduPilot `BATT_LOW_VOLT` / `BATT_CRT_VOLT`). The
   remaining % is ArduPilot's estimate from mAh used since power-on against `BATT_CAPACITY`
