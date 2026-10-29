@@ -5,6 +5,7 @@
 #include "QGCCorePlugin.h"
 
 class ForeViewCamera;
+class ForeViewLinks;
 class ForeViewMode;
 class QQmlApplicationEngine;
 
@@ -47,4 +48,5 @@ private:
     ForeViewOverrideInterceptor *_interceptor = nullptr;
     ForeViewMode *_mode = nullptr;
     ForeViewCamera *_camera = nullptr;
+    ForeViewLinks *_links = nullptr;
 };

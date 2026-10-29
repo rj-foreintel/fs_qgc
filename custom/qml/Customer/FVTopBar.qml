@@ -121,28 +121,50 @@ Rectangle {
             }
         }
 
-        // Status pill; tap to read the drone's messages (e.g. why it is not ready).
+        // Status pill; tap to read the drone's messages (e.g. why it is not ready), or to connect
+        // when no drone is connected.
         AbstractButton {
             id:                 statusButton
             Layout.alignment:   Qt.AlignVCenter
             implicitHeight:     FVTheme.unit * 1.7
-            implicitWidth:      statusLabel.implicitWidth + FVTheme.unit * 1.4
+            implicitWidth:      statusRow.implicitWidth + FVTheme.unit * 1.4
             focusPolicy:        Qt.NoFocus
-            enabled:            root._vehicle !== null
-            onClicked:          root.showMessages()
+            onClicked: {
+                if (root._vehicle) {
+                    root.showMessages()
+                } else {
+                    ForeViewLinks.connectDrone()
+                }
+            }
 
             background: Rectangle {
                 radius: height / 2
                 color:  root._statusColor
             }
 
-            contentItem: QGCLabel {
-                id:                     statusLabel
-                text:                   root._statusText
-                color:                  root._statusIsWarning ? FVTheme.warnInk : FVTheme.text
-                font.bold:              true
-                horizontalAlignment:    Text.AlignHCenter
-                verticalAlignment:      Text.AlignVCenter
+            contentItem: Item {
+                Row {
+                    id:                 statusRow
+                    anchors.centerIn:   parent
+                    spacing:            FVTheme.unit * 0.3
+
+                    QGCLabel {
+                        id:                     statusLabel
+                        anchors.verticalCenter: parent.verticalCenter
+                        text:                   root._statusText
+                        color:                  root._statusIsWarning ? FVTheme.warnInk : FVTheme.text
+                        font.bold:              true
+                    }
+
+                    // "Not connected" is also the connect button.
+                    QGCLabel {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text:                   qsTr("· Tap to connect")
+                        color:                  FVTheme.textDim
+                        font.pointSize:         FVTheme.smallFont
+                        visible:                root._vehicle === null
+                    }
+                }
             }
         }
 

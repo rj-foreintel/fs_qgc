@@ -413,6 +413,11 @@ Item {
         function onNotice(text, error) { toast.show(text, error) }
     }
 
+    Connections {
+        target: ForeViewLinks
+        function onNotice(text, error) { toast.show(text, error) }
+    }
+
     QGCPopupDialogFactory {
         id:                 unlockDialogFactory
         dialogComponent:    unlockDialogComponent

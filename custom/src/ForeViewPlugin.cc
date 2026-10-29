@@ -4,6 +4,7 @@
 #include "BatteryIndicatorSettings.h"
 #include "FactMetaData.h"
 #include "ForeViewCamera.h"
+#include "ForeViewLinks.h"
 #include "ForeViewMode.h"
 #include "QGCLoggingCategory.h"
 #include "VideoManager.h"
@@ -40,6 +41,7 @@ void ForeViewPlugin::_createObjects()
 
     _mode = new ForeViewMode(this);
     _camera = new ForeViewCamera(this);
+    _links = new ForeViewLinks(_mode, this);
 
     // ZT6/ZT30 side by side: the camera's second stream plays in QGC's thermal video output.
     (void) connect(_camera, &ForeViewCamera::sideBySideChanged, this, [this]() {
@@ -82,11 +84,13 @@ QQmlApplicationEngine *ForeViewPlugin::createQmlApplicationEngine(QObject *paren
     _interceptor = new ForeViewOverrideInterceptor();
     _qmlEngine->addUrlInterceptor(_interceptor);
 
-    // import ForeView: ForeViewMode.debugMode, ForeViewCamera.takePhoto(), ...
+    // import ForeView: ForeViewMode.debugMode, ForeViewCamera.takePhoto(), ForeViewLinks.connectDrone(), ...
     QQmlEngine::setObjectOwnership(_mode, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(_camera, QQmlEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(_links, QQmlEngine::CppOwnership);
     (void) qmlRegisterSingletonInstance("ForeView", 1, 0, "ForeViewMode", _mode);
     (void) qmlRegisterSingletonInstance("ForeView", 1, 0, "ForeViewCamera", _camera);
+    (void) qmlRegisterSingletonInstance("ForeView", 1, 0, "ForeViewLinks", _links);
 
     return _qmlEngine;
 }

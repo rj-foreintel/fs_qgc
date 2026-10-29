@@ -93,7 +93,9 @@ file(WRITE "${_foreview_generated_dir}/ForeViewDebugPassword.h"
 # ----------------------------------------------------------------------------
 set(CUSTOM_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewCamera.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewLinks.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewCamera.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewLinks.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewMode.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewMode.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ForeViewPlugin.cc
