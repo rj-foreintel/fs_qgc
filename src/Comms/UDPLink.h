@@ -117,6 +117,7 @@ signals:
     void dataSent(const QByteArray &data);
 
 private slots:
+    void _bind();
     void _onSocketConnected();
     void _onSocketDisconnected();
     void _onSocketReadyRead();
@@ -130,7 +131,10 @@ private:
     QList<std::shared_ptr<UDPClient>> _sessionTargets;
     bool _isConnected = false;
     bool _errorEmitted = false;
+    bool _bindWanted = false;   ///< connectLink() called and not yet disconnectLink(): retry a failed bind
     QSet<QHostAddress> _localAddresses;
+
+    static constexpr int kBindRetryIntervalMs = 2000;
 
     static const QHostAddress _multicastGroup;
 };

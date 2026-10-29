@@ -6,6 +6,7 @@
 
 #include <QtCore/QMutexLocker>
 #include <QtCore/QThread>
+#include <QtCore/QTimer>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkDatagram>
 #include <QtNetwork/QNetworkInterface>
@@ -319,13 +320,21 @@ void UDPWorker::connectLink()
     }
 
     _errorEmitted = false;
+    _bindWanted = true;
+    _bind();
+}
+
+void UDPWorker::_bind()
+{
+    if (!_bindWanted || isConnected()) {
+        return;
+    }
 
     qCDebug(UDPLinkLog) << "Attempting to bind to port:" << _udpConfig->localPort();
     const bool bindSuccess = _socket->bind(QHostAddress::AnyIPv4, _udpConfig->localPort(), QAbstractSocket::ReuseAddressHint | QAbstractSocket::ShareAddress);
     if (!bindSuccess) {
-        qCWarning(UDPLinkLog) << "Failed to bind UDP socket to port" << _udpConfig->localPort();
-
         if (!_errorEmitted) {
+            qCWarning(UDPLinkLog) << "Failed to bind UDP socket to port" << _udpConfig->localPort();
             emit errorOccurred(tr("Failed to bind UDP socket to port"));
             _errorEmitted = true;
         }
@@ -335,6 +344,10 @@ void UDPWorker::connectLink()
             _onSocketDisconnected();
         }*/
 
+        // The port may be held by another app, or the network may not be up yet (e.g. when the
+        // link connects automatically at start-up). Keep trying quietly until it binds or the
+        // link is disconnected.
+        QTimer::singleShot(kBindRetryIntervalMs, this, &UDPWorker::_bind);
         return;
     }
 
@@ -348,6 +361,8 @@ void UDPWorker::connectLink()
 
 void UDPWorker::disconnectLink()
 {
+    _bindWanted = false;
+
     if (!isConnected()) {
         qCDebug(UDPLinkLog) << "Already disconnected";
         return;
