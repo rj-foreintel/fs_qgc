@@ -94,6 +94,7 @@ void GstRtmpStreamer::pushSample(GstSample *sample)
     }
 
     _lastSampleMs = _clock.elapsed();
+    _inBytes += gst_buffer_get_size(buffer);
     _pushLocked(buffer, caps);
 }
 
@@ -162,6 +163,7 @@ void GstRtmpStreamer::_pushLocked(GstBuffer *buffer, GstCaps *caps)
             qCDebug(GstRtmpStreamerLog) << "Upload too slow, backlog" << (backlog / GST_MSECOND) << "ms - skipping to next keyframe";
         }
         _needKeyframe = true;
+        _lastBacklogDropMs = _clock.elapsed();
         return;
     }
 
@@ -301,6 +303,9 @@ bool GstRtmpStreamer::_buildPipeline(Codec codec, GstCaps *caps)
     _lastOutDts = GST_CLOCK_TIME_NONE;
     _lastOutBytes = 0;
     _lastStatsMs = _clock.elapsed();
+    _lastInBytes = _inBytes;
+    _lastBacklogDropMs = -1;
+    _uploadBehindSinceMs = -1;
     _connected = false;
 
     qCDebug(GstRtmpStreamerLog) << "Publishing" << _codecName(codec) << "to" << _describeUrl(_url);
@@ -348,6 +353,9 @@ void GstRtmpStreamer::_poll()
     QString text;
     QString codecName;
     int kbps = 0;
+    int inKbps = 0;
+    int backlogMs = 0;
+    bool uploadTooSlow = false;
 
     {
         QMutexLocker locker(&_lock);
@@ -395,6 +403,29 @@ void GstRtmpStreamer::_poll()
             if ((elapsedMs > 0) && (outBytes >= _lastOutBytes)) {
                 kbps = static_cast<int>(((outBytes - _lastOutBytes) * 8) / static_cast<guint64>(elapsedMs));
             }
+            if ((elapsedMs > 0) && (_inBytes >= _lastInBytes)) {
+                inKbps = static_cast<int>(((_inBytes - _lastInBytes) * 8) / static_cast<guint64>(elapsedMs));
+            }
+            _lastInBytes = _inBytes;
+
+            if (_appsrc) {
+                const GstClockTime level = gst_app_src_get_current_level_time(GST_APP_SRC(_appsrc));
+                if (GST_CLOCK_TIME_IS_VALID(level)) {
+                    backlogMs = static_cast<int>(level / GST_MSECOND);
+                }
+            }
+
+            // Behind when the upload stays clearly below the camera rate (10 % margin for
+            // bursty key frames), or frames had to be skipped recently.
+            if ((inKbps > 0) && (kbps * 10 < inKbps * 9)) {
+                if (_uploadBehindSinceMs < 0) {
+                    _uploadBehindSinceMs = now;
+                }
+            } else {
+                _uploadBehindSinceMs = -1;
+            }
+            uploadTooSlow = ((_uploadBehindSinceMs >= 0) && ((now - _uploadBehindSinceMs) > kUploadSlowMs))
+                            || ((_lastBacklogDropMs >= 0) && ((now - _lastBacklogDropMs) < kUploadSlowMs));
             // The handshake alone is a few hundred bytes; sustained data means we are live.
             if ((outBytes > _lastOutBytes) && (outBytes > 16 * 1024)) {
                 _connected = true;
@@ -417,6 +448,8 @@ void GstRtmpStreamer::_poll()
             state = WaitingForVideo;
             text = tr("Waiting for camera video");
             kbps = 0;
+            inKbps = 0;
+            uploadTooSlow = false;
         } else if (!_pipeline && (_retryAtMs >= 0)) {
             state = Reconnecting;
             const qint64 seconds = qMax<qint64>(1, (_retryAtMs - now + 999) / 1000);
@@ -430,7 +463,10 @@ void GstRtmpStreamer::_poll()
         }
     }
 
-    setStats(codecName, kbps);
+    if (state != Live) {
+        uploadTooSlow = false;
+    }
+    setStats(codecName, kbps, inKbps, backlogMs, uploadTooSlow);
     setState(state, text);
 }
 

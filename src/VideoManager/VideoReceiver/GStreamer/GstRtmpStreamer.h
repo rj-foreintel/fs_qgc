@@ -79,6 +79,10 @@ private:
     Codec _failedCodec = Codec::None;
     guint64 _lastOutBytes = 0;
     qint64 _lastStatsMs = 0;
+    guint64 _inBytes = 0;           ///< camera video bytes received while streaming is wanted
+    guint64 _lastInBytes = 0;
+    qint64 _lastBacklogDropMs = -1; ///< last time frames were skipped because the upload was behind
+    qint64 _uploadBehindSinceMs = -1;
     bool _connected = false;
 
     /// Set by pushSample() when it skipped a sample because the publisher was busy.
@@ -92,4 +96,6 @@ private:
     static constexpr GstClockTime kMaxBacklog = 2 * GST_SECOND;
     /// A jump in the input timestamps larger than this is treated as a new stream.
     static constexpr GstClockTime kMaxTimestampJump = 5 * GST_SECOND;
+    /// Upload below the camera rate for this long (or frames skipped this recently) = too slow.
+    static constexpr qint64 kUploadSlowMs = 5000;
 };

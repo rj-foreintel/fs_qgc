@@ -102,13 +102,45 @@ AbstractButton {
                     }
 
                     QGCLabel {
+                        text:       qsTr("Camera video:")
+                        visible:    control._isLive
+                    }
+                    QGCLabel {
+                        text:       control._streamer ? control._bitrateText(control._streamer.inputKbps) : ""
+                        visible:    control._isLive
+                    }
+
+                    QGCLabel {
                         text:       qsTr("Upload:")
                         visible:    control._isLive
                     }
                     QGCLabel {
                         text:       control._streamer ? control._bitrateText(control._streamer.bitrateKbps) : ""
+                        color:      control._streamer && control._streamer.uploadTooSlow ? QGroundControl.globalPalette.colorOrange : QGroundControl.globalPalette.text
+                        font.bold:  control._streamer && control._streamer.uploadTooSlow
                         visible:    control._isLive
                     }
+
+                    QGCLabel {
+                        text:       qsTr("Waiting to send:")
+                        visible:    control._isLive
+                    }
+                    QGCLabel {
+                        text:       control._streamer ? qsTr("%1 s").arg((control._streamer.backlogMs / 1000).toFixed(1)) : ""
+                        visible:    control._isLive
+                    }
+                }
+
+                // Tells the pilot whether a delay comes from this end (slow upload) or not.
+                QGCLabel {
+                    Layout.maximumWidth:    ScreenTools.defaultFontPixelWidth * 44
+                    wrapMode:               Text.WordWrap
+                    visible:                control._isLive
+                    color:                  control._streamer && control._streamer.uploadTooSlow ? QGroundControl.globalPalette.colorOrange : QGroundControl.globalPalette.text
+                    font.pointSize:         ScreenTools.smallFontPointSize
+                    text: control._streamer && control._streamer.uploadTooSlow
+                          ? qsTr("The internet upload is slower than the camera video, so the stream falls behind and frames are skipped. Lower the camera bitrate or use a faster connection.")
+                          : qsTr("The upload keeps up with the camera. Any extra delay seen by viewers comes from the server or player.")
                 }
 
                 QGCLabel {
