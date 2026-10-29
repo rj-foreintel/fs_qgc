@@ -11,5 +11,6 @@ FVRoundButton 1.0 FVRoundButton.qml
 FVSlideConfirm 1.0 FVSlideConfirm.qml
 FVTelemetryStrip 1.0 FVTelemetryStrip.qml
 FVBattery 1.0 FVBattery.qml
+FVGps 1.0 FVGps.qml
 FVTopBar 1.0 FVTopBar.qml
 FVUnlockDialog 1.0 FVUnlockDialog.qml

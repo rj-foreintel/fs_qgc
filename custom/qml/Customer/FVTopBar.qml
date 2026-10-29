@@ -21,8 +21,6 @@ Rectangle {
     property var    _vehicle:           QGroundControl.multiVehicleManager.activeVehicle
     property bool   _commLost:          _vehicle ? _vehicle.vehicleLinkManager.communicationLost : false
     property var    _battery:           _vehicle && _vehicle.batteries.count > 0 ? _vehicle.batteries.get(0) : null
-    property int    _gpsCount:          _vehicle ? _vehicle.gps.count.rawValue : 0
-    property int    _gpsLock:           _vehicle ? _vehicle.gps.lock.rawValue : 0
     property int    _rssi:              _vehicle ? _vehicle.rcRSSI.rawValue : 0
     property bool   _rssiValid:         _rssi > 0 && _rssi <= 100
 
@@ -179,24 +177,9 @@ Rectangle {
 
         Item { Layout.fillWidth: true }
 
-        Row {
+        FVGps {
             Layout.alignment:   Qt.AlignVCenter
-            spacing:            FVTheme.unit * 0.25
-            visible:            root._vehicle !== null
-
-            FVIcon {
-                anchors.verticalCenter: parent.verticalCenter
-                name:                   "gps"
-                height:                 FVTheme.unit * 1.1
-                color:                  root._gpsLock >= 3 ? FVTheme.text : FVTheme.warn
-            }
-
-            QGCLabel {
-                anchors.verticalCenter: parent.verticalCenter
-                text:                   root._gpsCount
-                color:                  root._gpsLock >= 3 ? FVTheme.text : FVTheme.warn
-                font.bold:              true
-            }
+            vehicle:            root._vehicle
         }
 
         Row {

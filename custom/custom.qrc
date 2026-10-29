@@ -27,6 +27,7 @@
         <file alias="FVTelemetryStrip.qml">qml/Customer/FVTelemetryStrip.qml</file>
         <file alias="FVTheme.qml">qml/Customer/FVTheme.qml</file>
         <file alias="FVBattery.qml">qml/Customer/FVBattery.qml</file>
+        <file alias="FVGps.qml">qml/Customer/FVGps.qml</file>
         <file alias="FVTopBar.qml">qml/Customer/FVTopBar.qml</file>
         <file alias="FVUnlockDialog.qml">qml/Customer/FVUnlockDialog.qml</file>
         <file alias="qmldir">qml/Customer/qmldir</file>
