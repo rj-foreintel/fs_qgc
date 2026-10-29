@@ -819,6 +819,14 @@ GstElement *GstVideoReceiver::_makeSource(const QString &input)
                          "retry", 3,
                          nullptr);
 
+            // GstRTSPLowerTrans flags: UDP 0x1, UDP multicast 0x2, TCP 0x4. Automatic keeps
+            // rtspsrc's default (UDP first, TCP if no UDP data arrives within tcp-timeout).
+            if (rtspTransport() == 1) {
+                g_object_set(source, "protocols", 0x1 | 0x2, nullptr);
+            } else if (rtspTransport() == 2) {
+                g_object_set(source, "protocols", 0x4, nullptr);
+            }
+
             if (!rtspUser.isEmpty()) {
                 g_object_set(source,
                              "user-id", rtspUser.toUtf8().constData(),

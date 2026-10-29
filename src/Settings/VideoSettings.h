@@ -25,6 +25,7 @@ public:
     DEFINE_SETTINGFACT(maxVideoSize)
     DEFINE_SETTINGFACT(enableStorageLimit)
     DEFINE_SETTINGFACT(rtspTimeout)
+    DEFINE_SETTINGFACT(rtspTransport)
     DEFINE_SETTINGFACT(streamEnabled)
     DEFINE_SETTINGFACT(disableWhenDisarmed)
     DEFINE_SETTINGFACT(lowLatencyMode)

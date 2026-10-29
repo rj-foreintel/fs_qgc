@@ -143,6 +143,17 @@
             "keywords": "disable when disarmed"
         },
         {
+            "name": "rtspTransport",
+            "shortDesc": "How RTSP video packets are carried from the camera.",
+            "longDesc": "Automatic tries UDP and falls back to TCP if no UDP video arrives. UDP gives the lowest delay, but packets lost on the radio link smear the picture until the next key frame. TCP resends lost packets, so the picture never corrupts, but it can pause or fall behind on a weak link. Takes effect when the video restarts.",
+            "type": "uint32",
+            "enumStrings": "Automatic,UDP,TCP",
+            "enumValues": "0,1,2",
+            "default": 0,
+            "label": "RTSP transport",
+            "keywords": "rtsp,tcp,udp,transport,glitch,smear"
+        },
+        {
             "name": "lowLatencyMode",
             "shortDesc": "Reduce video latency by approximately 200ms using optimized streaming settings.",
             "longDesc": "If this option is enabled, the rtpjitterbuffer is removed and the video sink is set to assynchronous mode, reducing the latency by about 200 ms.",

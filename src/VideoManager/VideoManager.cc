@@ -193,6 +193,13 @@ void VideoManager::init(QQuickWindow *mainWindow)
     (void) connect(_videoSettings->tcpUrl(), &Fact::rawValueChanged, this, &VideoManager::_videoSourceChanged);
     (void) connect(_videoSettings->aspectRatio(), &Fact::rawValueChanged, this, &VideoManager::aspectRatioChanged);
     (void) connect(_videoSettings->lowLatencyMode(), &Fact::rawValueChanged, this, [this](const QVariant &value) { Q_UNUSED(value); _restartAllVideos(); });
+    (void) connect(_videoSettings->rtspTransport(), &Fact::rawValueChanged, this, [this](const QVariant &value) {
+        Q_UNUSED(value);
+        for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
+            (void) _updateSettings(receiver);
+        }
+        _restartAllVideos();
+    });
     (void) connect(_videoSettings->liveStreamEnabled(), &Fact::rawValueChanged, this, [this](const QVariant &value) {
         if (!value.toBool()) {
             stopLiveStream();
@@ -764,6 +771,12 @@ bool VideoManager::_updateSettings(VideoReceiver *receiver)
     const bool lowLatency = _videoSettings->lowLatencyMode()->rawValue().toBool();
     if (lowLatency != receiver->lowLatency()) {
         receiver->setLowLatency(lowLatency);
+        settingsChanged = true;
+    }
+
+    const int rtspTransport = _videoSettings->rtspTransport()->rawValue().toInt();
+    if (rtspTransport != receiver->rtspTransport()) {
+        receiver->setRtspTransport(rtspTransport);
         settingsChanged = true;
     }
 
