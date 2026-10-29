@@ -490,6 +490,15 @@ void GstVideoReceiver::startDecoding(void *sink)
         return;
     }
 
+    // Decoding starts at whatever frame arrives next. Frames before the first key frame refer to
+    // pictures the decoder never saw and come out as grey/smeared blocks, so hold them back.
+    GstPad *valveSrcPad = gst_element_get_static_pad(_decoderValve, "src");
+    if (valveSrcPad) {
+        _keyframeGateStartUs = 0;
+        (void) gst_pad_add_probe(valveSrcPad, GST_PAD_PROBE_TYPE_BUFFER, _decoderKeyframeGate, this, nullptr);
+        gst_clear_object(&valveSrcPad);
+    }
+
     g_object_set(_decoderValve,
                  "drop", FALSE,
                  nullptr);
@@ -1814,6 +1823,33 @@ GstPadProbeReturn GstVideoReceiver::_eosProbe(GstPad *pad, GstPadProbeInfo *info
     }
 
     return GST_PAD_PROBE_OK;
+}
+
+GstPadProbeReturn GstVideoReceiver::_decoderKeyframeGate(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
+{
+    Q_UNUSED(pad);
+
+    GstVideoReceiver *pThis = static_cast<GstVideoReceiver*>(user_data);
+    GstBuffer *buf = gst_pad_probe_info_get_buffer(info);
+    if (!pThis || !buf) {
+        return GST_PAD_PROBE_REMOVE;
+    }
+
+    if (!GST_BUFFER_FLAG_IS_SET(buf, GST_BUFFER_FLAG_DELTA_UNIT)) {
+        qCDebug(GstVideoReceiverLog) << "First key frame, decoding" << pThis->_uri;
+        return GST_PAD_PROBE_REMOVE;
+    }
+
+    // Streams that never flag a key frame (e.g. intra refresh) must not stay black.
+    const gint64 now = g_get_monotonic_time();
+    if (pThis->_keyframeGateStartUs == 0) {
+        pThis->_keyframeGateStartUs = now;
+    } else if ((now - pThis->_keyframeGateStartUs) > kKeyframeGateTimeoutUs) {
+        qCDebug(GstVideoReceiverLog) << "No key frame flagged, decoding anyway" << pThis->_uri;
+        return GST_PAD_PROBE_REMOVE;
+    }
+
+    return GST_PAD_PROBE_DROP;
 }
 
 GstPadProbeReturn GstVideoReceiver::_keyframeWatch(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)

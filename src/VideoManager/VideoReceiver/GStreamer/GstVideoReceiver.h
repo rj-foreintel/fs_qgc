@@ -120,6 +120,8 @@ private:
     static GstPadProbeReturn _videoSinkProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
     static GstPadProbeReturn _eosProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
     static GstPadProbeReturn _keyframeWatch(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
+    /// Drops frames entering the decoder until the first key frame (or kKeyframeGateTimeoutUs).
+    static GstPadProbeReturn _decoderKeyframeGate(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
     static GstFlowReturn _onLiveStreamSample(GstAppSink *appsink, gpointer user_data);
 
     GstElement *_decoder = nullptr;
@@ -139,6 +141,8 @@ private:
     gulong _eosProbeId = 0;
     GstPad *_eosProbePad = nullptr;  // ref-held: probe install pad, kept so removal targets the right pad regardless of _decoder lifecycle
     gulong _keyframeWatchId = 0;
+    gint64 _keyframeGateStartUs = 0;   ///< streaming thread only, reset before the gate is installed
+    static constexpr gint64 kKeyframeGateTimeoutUs = 3 * G_USEC_PER_SEC;
     bool _recordingStopRequested = false;
 
     QString _decoderName;
