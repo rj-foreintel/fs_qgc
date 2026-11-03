@@ -21,8 +21,6 @@ Rectangle {
     property var    _vehicle:           QGroundControl.multiVehicleManager.activeVehicle
     property bool   _commLost:          _vehicle ? _vehicle.vehicleLinkManager.communicationLost : false
     property var    _battery:           _vehicle && _vehicle.batteries.count > 0 ? _vehicle.batteries.get(0) : null
-    property int    _rssi:              _vehicle ? _vehicle.rcRSSI.rawValue : 0
-    property bool   _rssiValid:         _rssi > 0 && _rssi <= 100
 
     // Readiness, following QGC's main status indicator.
     readonly property bool _ready: {
@@ -204,35 +202,9 @@ Rectangle {
             vehicle:            root._vehicle
         }
 
-        Row {
+        FVRc {
             Layout.alignment:   Qt.AlignVCenter
-            spacing:            FVTheme.unit * 0.25
-            visible:            root._vehicle !== null
-
-            // Remote control signal, four bars
-            Row {
-                anchors.bottom: rcLabel.baseline
-                spacing:        FVTheme.unit * 0.1
-
-                Repeater {
-                    model: 4
-
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        width:          FVTheme.unit * 0.22
-                        height:         FVTheme.unit * (0.35 + index * 0.22)
-                        radius:         width / 3
-                        color:          root._rssiValid && root._rssi > index * 25 ? FVTheme.text : FVTheme.plateLine
-                    }
-                }
-            }
-
-            QGCLabel {
-                id:         rcLabel
-                text:       qsTr("RC")
-                color:      FVTheme.text
-                font.bold:  true
-            }
+            vehicle:            root._vehicle
         }
 
         FVBattery {
