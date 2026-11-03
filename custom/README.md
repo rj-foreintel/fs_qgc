@@ -37,6 +37,8 @@ Changes outside `custom/` (keep them when merging upstream QGC):
   `VideoReceiver.h`, `VideoManager.cc`: "RTSP transport" (Automatic / UDP / TCP) in Settings > Video.
 - `src/VideoManager/VideoReceiver/VideoLiveStreamer.h`, `GstRtmpStreamer.*`: camera rate, queued video
   and "upload too slow" for the LIVE panel.
+- `src/Vehicle/Vehicle.cc`: ArduPilot's RC RSSI (0-255) is converted to the 0-100 % QGC expects; before,
+  any signal above ~39 % read as "unknown" and the RC indicator vanished.
 - `src/Comms/UDPLink.*`: a UDP port that cannot be bound is retried every 2 s instead of leaving the
   link dead until restart (e.g. port still held by another app at start-up).
 
@@ -57,6 +59,8 @@ ForeView always starts in **customer mode**:
   saved links that have "Automatically Connect on Start" (or the only saved link). In customer
   mode those links are also retried every 5 s while no drone is connected (TCP links are probed
   first so a failed retry shows no error).
+- RC shows bars and the signal % reported by the drone; tapping it explains how to turn RSSI on
+  (ArduPilot sends none while `RSSI_TYPE` = 0).
 - The battery shows voltage by default and takes its colour and low/critical warnings from
   the flight controller's charge state (ArduPilot `BATT_LOW_VOLT` / `BATT_CRT_VOLT`). The
   remaining % is ArduPilot's estimate from mAh used since power-on against `BATT_CAPACITY`
