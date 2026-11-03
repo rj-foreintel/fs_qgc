@@ -1383,11 +1383,11 @@ void Vehicle::_handleRCChannels(mavlink_message_t& message)
 
     // rcRSSI is now a Fact on VehicleFactGroup (this); VehicleFactGroup owns the low-pass
     // filter and sentinel handling for the 0-100 / 255-unknown semantics.
-    // ArduPilot sends 0-255 (AP_RSSI::read_receiver_rssi_uint8 = signal * 255, 0 when RSSI_TYPE
-    // is disabled, never "unknown"), so 255 is full signal there, not the unknown sentinel.
+    // ArduPilot sends 0-254 (GCS_MAVLINK::receiver_rssi() = signal * 254) and 255 when RSSI is
+    // not set up (RSSI_TYPE 0); convert to the 0-100 % that rcRSSI holds.
     uint8_t rssi = channels.rssi;
-    if (apmFirmware()) {
-        rssi = static_cast<uint8_t>(std::lround(rssi * 100.0 / 255.0));
+    if (apmFirmware() && (rssi != UINT8_MAX)) {
+        rssi = static_cast<uint8_t>(std::lround(rssi * 100.0 / 254.0));
     }
     updateRCRSSI(rssi);
     emit rcChannelsRawChanged(channelValues);
