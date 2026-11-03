@@ -85,6 +85,8 @@
 
 #include <QtCore/QDateTime>
 
+#include <cmath>
+
 QGC_LOGGING_CATEGORY(VehicleLog, "Vehicle.Vehicle")
 
 #define UPDATE_TIMER 50
@@ -1381,7 +1383,13 @@ void Vehicle::_handleRCChannels(mavlink_message_t& message)
 
     // rcRSSI is now a Fact on VehicleFactGroup (this); VehicleFactGroup owns the low-pass
     // filter and sentinel handling for the 0-100 / 255-unknown semantics.
-    updateRCRSSI(channels.rssi);
+    // ArduPilot sends 0-255 (AP_RSSI::read_receiver_rssi_uint8 = signal * 255, 0 when RSSI_TYPE
+    // is disabled, never "unknown"), so 255 is full signal there, not the unknown sentinel.
+    uint8_t rssi = channels.rssi;
+    if (apmFirmware()) {
+        rssi = static_cast<uint8_t>(std::lround(rssi * 100.0 / 255.0));
+    }
+    updateRCRSSI(rssi);
     emit rcChannelsRawChanged(channelValues);
     emit rcChannelsClampedChanged(clampedValues);
 }
